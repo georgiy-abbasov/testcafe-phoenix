@@ -235,3 +235,75 @@ gulp.task('report-design-viewer', ['build'], function () {
 });
 
 gulp.task('travis', [process.env.GULP_TASK || '']);
+
+
+gulp.task('test-functional', function () {
+    var functionalTestHarness = require('./test/functional/harness/');
+
+    SAUCELABS_SETTINGS = {
+        username:  'testcafe-func',
+        accessKey: '2c42bb27-ccc1-41ea-a5ad-4b28b67315da',
+        jobName:   'testcafe client tests'
+    };
+
+    CLIENT_TESTS_BROWSERS = [
+        {
+            platform:    'Windows 10',
+            browserName: 'internet explorer',
+            version:     '11.0',
+            alias:       'ie'
+        },
+        {
+            platform:    'Windows 10',
+            browserName: 'firefox',
+            alias:       'ff'
+        }
+    ];
+
+    var testPath     = './test/functional/test.js';
+    var mochaTimeout = 600000;
+
+    var ports        = {
+        testCafePort1: 1335,
+        testCafePort2: 1336,
+        sitePort1:     3000,
+        sitePort2:     3001
+    };
+
+    return functionalTestHarness.run(ports, testPath, mochaTimeout, CLIENT_TESTS_BROWSERS, SAUCELABS_SETTINGS);
+});
+
+gulp.task('test-functional-local', function () {
+    var functionalTestHarness = require('./test/functional/harness/');
+
+    CLIENT_TESTS_BROWSERS = [
+        {
+            platform:    'Windows 10',
+            browserName: 'internet explorer',
+            version:     '11.0',
+            alias:       'ie'
+        },
+        {
+            platform:    'Windows 10',
+            browserName: 'firefox',
+            alias:       'ff'
+        },
+        {
+            platform:    'Windows 10',
+            browserName: 'chrome',
+            alias:       'chrome'
+        }
+    ];
+
+    var testPath     = './test/functional/test.js';
+    var mochaTimeout = 600000;
+
+    var ports        = {
+        testCafePort1: 1335,
+        testCafePort2: 1336,
+        sitePort1:     3000,
+        sitePort2:     3001
+    };
+
+    return functionalTestHarness.run(ports, testPath, mochaTimeout, CLIENT_TESTS_BROWSERS);
+});

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Regression click</title>
+    <style>
+        div {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body style="height: 1500px;">
+<div id="notScrollableContainer" style="width: 100px; height: 100px;">
+    <div id='hiddenDiv' style="position: relative; left: -250px;">div</div>
+</div>
+
+<input type="button" id="input" style="position: absolute; margin-left: 100px; margin-top: 100px;"/>
+<input type="text" id="inputText" style="position: absolute; margin-left: 170px; margin-top: 170px;" value="123456789"/>
+
+<div id="box" style="width: 128px;">
+    <a id="link1" href="javascript:void(0);">why do I have to break</a>
+    <br>
+    <a id="link2" href="javascript:void(0);">
+        <span>why do I have to break</span>
+    </a>
+</div>
+
+<label for="inputInLabel">
+    <span>label for input</span>
+    <input id="inputInLabel"/>
+</label>
+</body>
+</html>

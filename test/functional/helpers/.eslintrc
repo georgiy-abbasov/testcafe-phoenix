@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "no-unused-expressions": 0,
+    "max-nested-callbacks": [
+      2,
+      5
+    ]
+  },
+  "env": {
+    "mocha": false,
+    "node": false,
+    "browser": true,
+    "jquery": true
+  },
+  "globals": {
+    /* testcafe api */
+    "ok": true,
+    "eq": true
+  }
+}
