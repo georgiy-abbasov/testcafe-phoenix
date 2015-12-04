@@ -1,7 +1,8 @@
 var site           = require('../site');
 var createTestCafe = require('../../../lib');
 
-var Environment = module.exports = function (tcPort1, tcPort2, sitePort1, sitePort2) {
+var Environment = module.exports = function (hostname, tcPort1, tcPort2, sitePort1, sitePort2) {
+    this.hostname  = hostname;
     this.testCafe  = null;
     this.tcPort1   = tcPort1;
     this.tcPort2   = tcPort2;
@@ -12,9 +13,9 @@ var Environment = module.exports = function (tcPort1, tcPort2, sitePort1, sitePo
 Environment.prototype.start = function () {
     var environment = this;
 
-    site.create(environment.sitePort1, environment.sitePort2, './test/functional/');
+    site.create(this.sitePort1, this.sitePort2, './test/functional/');
 
-    return createTestCafe('localhost', environment.tcPort1, environment.tcPort2)
+    return createTestCafe(this.hostname, this.tcPort1, this.tcPort2)
         .then(function (tc) {
             environment.testCafe = tc;
 

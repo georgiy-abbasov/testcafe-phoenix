@@ -1,18 +1,17 @@
-var harness      = require('./harness/index');
-var testCafe     = harness.testCafe;
-var browsersInfo = harness.browsersInfo;
+var harness = require('./harness');
+var path    = require('path');
+var caller  = require('caller');
 
 
-function checkTestByBrowserAlias (testName, browserAlias) {
-    var matchesOnly = testName.match(/\[ONLY\:([,\w]*)\]/);
-    var matchesSkip = testName.match(/\[SKIP\:([,\w]*)\]/);
+function checkTestByBrowserAlias (test, browserAlias) {
+    var matchesOnly = test.match(/\[ONLY\:([,\s\w]*)\]/);
+    var matchesSkip = test.match(/\[SKIP\:([,\s\w]*)\]/);
 
     var only = true;
     var skip = false;
 
-    if (matchesOnly !== null) {
+    if (matchesOnly !== null)
         only = matchesOnly[1].indexOf(browserAlias) > -1;
-    }
 
     if (matchesSkip !== null)
         skip = matchesSkip[1].indexOf(browserAlias) > -1;
@@ -20,46 +19,41 @@ function checkTestByBrowserAlias (testName, browserAlias) {
     return only && !skip;
 }
 
-function filterTestErrorsByTestOptions (testName, errors) {
+function filterErrorsByUserAgents (errors, userAgents) {
     return errors.filter(function (error) {
-        var browserAlias = browsersInfo.filter(function (browserInfo) {
-            return browserInfo.connection.userAgent === error.match(/([^]*?)[\r\n]/)[1];
-        })[0].settings.alias;
-
-        return checkTestByBrowserAlias(testName, browserAlias);
+        return userAgents.indexOf(error.split('\n')[0]) > -1;
     });
 }
 
 function getFailedTests (testCafeReport) {
-    if (!testCafeReport)
-        return {};
-
-    var testResults    = JSON.parse(testCafeReport).fixtures[0].tests;
-    var failedTests    = {};
-
-    var browserAliases = browsersInfo.map(function (browserInfo) {
-        return browserInfo.settings.alias
-    });
+    var testResults = JSON.parse(testCafeReport).fixtures[0].tests;
+    var failedTests = {};
 
     testResults
         .filter(function (test) {
             return test.errs.length > 0;
         })
         .forEach(function (test) {
-            var actualUserAgents = browserAliases.filter(function (alias) {
-                return checkTestByBrowserAlias(test.name, alias);
-            });
+            var actualUserAgents = harness.browsersInfo
+                .filter(function (browserInfo) {
+                    return checkTestByBrowserAlias(test.name, browserInfo.settings.alias);
+                })
+                .map(function (browserInfo) {
+                    return browserInfo.connection.userAgent;
+                });
 
-            var actualBrowsersLength = actualUserAgents.length;
-            var actualTestErrorsLength = filterTestErrorsByTestOptions(test.name, test.errs).length;
+            var actualBrowsersCount = actualUserAgents.length;
+            var actualTestErrors    = filterErrorsByUserAgents(test.errs, actualUserAgents);
+            var actualTestErrorsCount = actualTestErrors.length;
 
-            if (actualTestErrorsLength) {
-                if (actualTestErrorsLength !== actualBrowsersLength)
-                    failedTests[test.name] = test.errs;
+            if (actualTestErrorsCount) {
+                //NOTE: if the test failed in different browsers with the same error we join it to one error
+                if (actualTestErrorsCount !== actualBrowsersCount)
+                    failedTests[test.name] = actualTestErrors.join('\n');
                 else {
-                    failedTests[test.name] = test.errs[0]
-                        .replace(/([^]*?[\r\n])/, '')
+                    failedTests[test.name] = actualTestErrors[0]
                         .split('\n')
+                        .slice(1)
                         .map(function (str) {
                             return str.trim();
                         })
@@ -73,8 +67,10 @@ function getFailedTests (testCafeReport) {
 
 exports.runTests = function (fixture, testName) {
     var testCafeReport = '';
-    var runner         = testCafe.createRunner();
-    var connections    = browsersInfo.map(function (browserInfo) {
+    var runner         = harness.testCafe.createRunner();
+    var fixturePath    = path.join(path.dirname(caller()), fixture);
+
+    var connections = harness.browsersInfo.map(function (browserInfo) {
         return browserInfo.connection;
     });
 
@@ -92,7 +88,7 @@ exports.runTests = function (fixture, testName) {
                 testCafeReport += data;
             }
         })
-        .src(fixture)
+        .src(fixturePath)
         .run()
         .then(function () {
             var failedTests = getFailedTests(testCafeReport);

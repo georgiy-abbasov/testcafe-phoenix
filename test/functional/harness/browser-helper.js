@@ -2,9 +2,9 @@ var SaucelabsConnector = require('saucelabs-connector');
 var browserNatives     = require('testcafe-browser-natives');
 var Promise            = require('es6-promise').Promise;
 
-var getInstallations = browserNatives.getInstallations;
-var openBrowser      = browserNatives.open;
-var closeBrowser     = browserNatives.close;
+var getBrowserInfo = browserNatives.getBrowserInfo;
+var openBrowser    = browserNatives.open;
+var closeBrowser   = browserNatives.close;
 
 
 var BrowserHelper = module.exports = function (browsersInfo, sauceLabsSettings) {
@@ -37,14 +37,15 @@ BrowserHelper.prototype.openBrowsers = function () {
             });
     }
 
-    return getInstallations()
-        .then(function (installations) {
-            startBrowserPromises = helper.browsersInfo.map(function (browserInfo) {
-                return openBrowser(installations[browserInfo.settings.alias], browserInfo.connection.url);
+    startBrowserPromises = helper.browsersInfo.map(function (browserInfo) {
+        return getBrowserInfo(browserInfo.settings.alias)
+            .then(function (browser) {
+                return openBrowser(browser, browserInfo.connection.url);
             });
+    });
 
-            return Promise.all(startBrowserPromises);
-        })
+    return Promise
+        .all(startBrowserPromises)
         .then(function () {
             helper.localBrowsers = helper.browsersInfo;
         });

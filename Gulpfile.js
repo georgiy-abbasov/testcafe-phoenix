@@ -110,6 +110,7 @@ gulp.task('lint', function () {
             //'test/**/*.js',       //TODO: fix it
             'test/server/**.js',
             'test/report-design-viewer/*.js',
+            'test/functional/**/*.js',
             'Gulpfile.js'
         ])
         .pipe(eslint())
@@ -257,20 +258,30 @@ gulp.task('test-functional', function () {
             platform:    'Windows 10',
             browserName: 'firefox',
             alias:       'ff'
+        },
+        {
+            platform:    'Windows 10',
+            browserName: 'chrome',
+            alias:       'chrome'
         }
     ];
 
-    var testPath     = './test/functional/test.js';
+    var testPath = [
+        './test/functional/fixtures/runner/api/click/click-test.js'
+    ];
+
     var mochaTimeout = 600000;
 
-    var ports        = {
+    var ports = {
         testCafePort1: 1335,
         testCafePort2: 1336,
         sitePort1:     3000,
         sitePort2:     3001
     };
 
-    return functionalTestHarness.run(ports, testPath, mochaTimeout, CLIENT_TESTS_BROWSERS, SAUCELABS_SETTINGS);
+    var hostname = 'localhost';
+
+    return functionalTestHarness.run(hostname, ports, testPath, mochaTimeout, CLIENT_TESTS_BROWSERS, SAUCELABS_SETTINGS);
 });
 
 gulp.task('test-functional-local', function () {
@@ -295,15 +306,20 @@ gulp.task('test-functional-local', function () {
         }
     ];
 
-    var testPath     = './test/functional/test.js';
+    var testPath = [
+        './test/functional/fixtures/runner/api/click/click-test.js'
+    ];
+
     var mochaTimeout = 600000;
 
-    var ports        = {
+    var ports = {
         testCafePort1: 1335,
         testCafePort2: 1336,
         sitePort1:     3000,
         sitePort2:     3001
     };
 
-    return functionalTestHarness.run(ports, testPath, mochaTimeout, CLIENT_TESTS_BROWSERS);
+    var hostname = 'localhost';
+
+    return functionalTestHarness.run(hostname, ports, testPath, mochaTimeout, CLIENT_TESTS_BROWSERS);
 });

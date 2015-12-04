@@ -11,7 +11,13 @@ module.exports = function (tests, timeout) {
 
     var runMocha = promisify(mocha.run.bind(mocha));
 
-    mocha.addFile(tests);
+    if (Array.isArray(tests)) {
+        tests.forEach(function (test) {
+            mocha.addFile(test);
+        });
+    }
+    else
+        mocha.addFile(tests);
 
     return runMocha();
 };

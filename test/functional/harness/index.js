@@ -5,8 +5,8 @@ var BrowserHelper = require('./browser-helper');
 exports.testCafe     = null;
 exports.browsersInfo = null;
 
-exports.run = function (ports, testPath, timeout, browserSettings, sauceLabsSettings) {
-    var environment   = new Environment(ports.testCafePort1, ports.testCafePort2, ports.sitePort1, ports.sitePort2);
+exports.run = function (hostname, ports, testPath, timeout, browserSettings, sauceLabsSettings) {
+    var environment   = new Environment(hostname, ports.testCafePort1, ports.testCafePort2, ports.sitePort1, ports.sitePort2);
     var browserHelper = null;
     var testRunError  = null;
 
