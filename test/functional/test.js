@@ -1,14 +1,22 @@
-var runTest = require('./harness/test-runner.js').runTests;
+var runTest = require('./test-runner.js').runTests;
 var expect  = require('chai').expect;
+var Promise = require('es6-promise').Promise;
 
 
 describe('api click test', function () {
-    it('Should fail when the first argument is invisible', function (done) {
-        runTest('test/functional/runner/api/click/click.test.js', '[SHOULD FAIL] when the first argument is invisible')
+    it('Should fail when the first argument is invisible', function () {
+        var testSuccessed  = false;
+
+        return runTest('test/functional/runner/api/click/click.test.js', '[SHOULD FAIL] when the first argument is invisible')
             .then(function () {
-                done('test should fail but was succeed');
+                testSuccessed = true;
+
+                throw new Error();
             })
             .catch(function (errs) {
+                if (testSuccessed)
+                    throw new Error('Test should fail but was successed.');
+
                 var expectedError = [
                     'Error at step "1.Click on an nonexistent element":',
                     '',
@@ -20,10 +28,6 @@ describe('api click test', function () {
                 ].join(' ');
 
                 expect(errs['[SHOULD FAIL] when the first argument is invisible']).eql(expectedError);
-            })
-            .then(done)
-            .catch(function (err) {
-                done(err);
             });
     });
 });
