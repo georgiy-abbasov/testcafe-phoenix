@@ -91,9 +91,10 @@ before(function () {
         })
         .then(function () {
             global.runTests = function (fixture, testName, opts) {
-                var report = '';
+                var report       = '';
                 var runner = testCafe.createRunner();
                 var fixturePath = path.join(path.dirname(caller()), fixture);
+                var skipJsErrors = opts && opts.skipJsErrors;
 
                 var connections = browsersInfo.map(function (browserInfo) {
                     return browserInfo.connection;
@@ -114,7 +115,7 @@ before(function () {
                         }
                     })
                     .src(fixturePath)
-                    .run()
+                    .run({ skipJsErrors: skipJsErrors })
                     .then(function () {
                         var testReport = JSON.parse(report).fixtures[0].tests[0];
                         var testError  = getTestError(testReport, browsersInfo);
