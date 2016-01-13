@@ -32,10 +32,17 @@ export default class BrowserSet extends EventEmitter {
         if (bc.idle || bc.closed || !bc.ready)
             return;
 
+        var idlePromise  = promisifyEvent(bc, 'idle');
+        var closePromise = promisifyEvent(bc, 'closed');
+
         await Promise.race([
-            promisifyEvent(bc, 'idle'),
-            promisifyEvent(bc, 'closed')
+            idlePromise,
+            closePromise
         ]);
+
+        // We must delete listeners from browser connection to avoid overflow subscribers limit.
+        idlePromise.cancel();
+        closePromise.cancel();
     }
 
     static async _closeConnection (bc) {
