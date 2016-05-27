@@ -37,7 +37,7 @@ export default class ClientDriver {
         this.browserStatusUrl           = browserStatusUrl;
         this.elementAvailabilityTimeout = elementAvailabilityTimeout;
         this.contextStorage             = new ContextStorage(window, testRunId);
-        this.beforeUnloadRaised         = false;
+        this.unloadRaised               = false;
 
         this.pageInitialXhrBarrier = new XhrBarrier();
 
@@ -49,7 +49,7 @@ export default class ClientDriver {
 
         modalBackground.initAndShowLoadingText();
         hammerhead.on(hammerhead.EVENTS.uncaughtJsError, err => this._onJsError(err));
-        hammerhead.on(hammerhead.EVENTS.beforeUnload, () => this.beforeUnloadRaised = true);
+        hammerhead.on(hammerhead.EVENTS.unload, () => this.unloadRaised = true);
 
         var pendingStatus = this.contextStorage.getItem(PENDING_STATUS, status);
 
@@ -115,14 +115,14 @@ export default class ClientDriver {
         this.contextStorage.setItem(PENDING_STATUS, status);
 
         // NOTE: postpone status sending if the page is unloading
-        if (this.beforeUnloadRaised)
+        if (this.unloadRaised)
             return hangingPromise;
 
         return transport
             .queuedAsyncServiceMsg({ cmd: MESSAGE.ready, status })
             .then(res => {
                 //NOTE: do not execute the next command if the page is unloading
-                if (this.beforeUnloadRaised)
+                if (this.unloadRaised)
                     return hangingPromise;
 
                 this.contextStorage.setItem(PENDING_STATUS, null);

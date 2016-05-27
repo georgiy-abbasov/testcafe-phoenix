@@ -1,3 +1,5 @@
 export default {
-    ready: 'ready'
+    ready:                            'ready',
+    getAndUncheckFileDownloadingFlag: 'get-and-uncheck-file-downloading-flag',
+    uncheckFileDownloadingFlag:       'uncheck-file-downloading-flag'
 };

@@ -6,7 +6,7 @@ var iframeSandbox = hammerhead.sandbox.iframe;
 var iframe                  = null;
 var iframePageUnloadBarrier = null;
 var waitIframeLoad          = null;
-var waitIframeBeforeUnLoad  = null;
+var waitBeforeUnload        = null;
 
 QUnit.testStart(function () {
     iframeSandbox.on(iframeSandbox.RUN_TASK_SCRIPT, window.initIFrameTestHandler);
@@ -29,11 +29,17 @@ QUnit.testStart(function () {
             });
         };
 
-        waitIframeBeforeUnLoad = function () {
+        waitBeforeUnload = function () {
             return new Promise(function (resolve) {
                 iframeHammerhead.on(iframeHammerhead.EVENTS.beforeBeforeUnload, resolve);
             });
         };
+
+
+        iframeHammerhead.on(iframeHammerhead.EVENTS.unload, function () {
+            console.log('r');
+        });
+
 
         QUnit.start();
     };
@@ -61,7 +67,7 @@ $(document).ready(function () {
 
         iframe.contentWindow.location = '/xhr-test/600';    // delay should be greater then page load barrier timeout
 
-        waitIframeBeforeUnLoad()
+        waitBeforeUnload()
             .then(function () {
                 return iframePageUnloadBarrier.wait();
             })
@@ -80,7 +86,7 @@ $(document).ready(function () {
         var iframeDocument = iframe.contentDocument;
         var link           = iframeDocument.createElement('a');
 
-        link.href        = '/xhr-test/750';
+        link.href        = 'http://example.com';
         link.textContent = 'link';
         iframeDocument.body.appendChild(link);
 
@@ -88,13 +94,45 @@ $(document).ready(function () {
 
         var pageUnloadBarrierResolved = false;
 
-        waitIframeBeforeUnLoad()
+        waitBeforeUnload()
             .then(function () {
                 return iframePageUnloadBarrier.wait();
             })
             .then(function () {
                 pageUnloadBarrierResolved = true;
             });
+
+        waitIframeLoad()
+            .then(function () {
+                ok(!pageUnloadBarrierResolved);
+                start();
+            });
+    });
+
+    asyncTest('Should not resolve waiting promise if page is unloading after click on a link (5000)', function () {
+        console.log('our test');
+        var iframeDocument = iframe.contentDocument;
+        var link           = iframeDocument.createElement('a');
+
+        link.href        = '/xhr-test/5000';
+        link.textContent = 'link';
+        iframeDocument.body.appendChild(link);
+
+        link.click();
+
+        var pageUnloadBarrierResolved = false;
+
+        waitBeforeUnload()
+            .then(function () {
+                return iframePageUnloadBarrier.wait();
+            })
+            .then(function () {
+                pageUnloadBarrierResolved = true;
+            });
+
+        iframe.contentWindow.addEventListener('unload', function (event) {
+            console.log('I am the 4th and last one…');
+        });
 
         waitIframeLoad()
             .then(function () {

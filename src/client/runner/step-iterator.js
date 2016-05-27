@@ -42,6 +42,7 @@ var StepIterator = function (pingIframe) {
     this.pingIframe           = pingIframe;
     this.globalWaitForEvent   = null;
     this.globalWaitForTimeout = null;
+    this.pageUnloadBarrier    = pageUnloadBarrier;
 
     this.eventEmitter = new serviceUtils.EventEmitter();
 };
@@ -182,11 +183,11 @@ StepIterator.prototype._setupUnloadHandlers = function () {
             if (document.readyState === 'loading' &&
                 !(document.activeElement && domUtils.isAnchorElement(document.activeElement) &&
                 document.activeElement.hasAttribute('download')))
-                onBeforeUnload();
+                iterator.onBeforeUnload();
         }, 0);
     }
 
-    hammerhead.on(hammerhead.EVENTS.beforeUnload, browserUtils.isIE ? onBeforeUnloadIE : onBeforeUnload);
+    hammerhead.on(hammerhead.EVENTS.beforeUnload, browserUtils.isIE ? onBeforeUnloadIE : ()=>iterator.onBeforeUnload());
     eventUtils.bind(window, 'unload', onUnload);
 };
 
@@ -233,9 +234,10 @@ StepIterator.prototype._completeAsyncAction = function () {
     if (iterator.state.stopped)
         return;
 
-    pageUnloadBarrier
+    this.pageUnloadBarrier
         .wait()
         .then(() => iterator._runStep());
+
 };
 
 StepIterator.prototype.callWithSharedDataContext = function (func) {
@@ -350,7 +352,7 @@ StepIterator.prototype._init = function () {
     this.initialized = true;
 
     this._setupUnloadHandlers();
-    pageUnloadBarrier.init();
+    this.pageUnloadBarrier.init();
 };
 
 StepIterator.prototype.start = function (stepNames, testSteps, stepSetup, stepDone, nextStep) {
@@ -526,6 +528,10 @@ StepIterator.prototype.takeScreenshot = function (callback, filePath) {
         filePath: filePath || '',
         callback: callback
     });
+};
+
+StepIterator.prototype.onBeforeUnload = function () {
+    //dummy
 };
 
 

@@ -41,7 +41,6 @@ var RunnerBase = function () {
     this.executingStepInIFrameWindow      = null;
     this.stopped                          = false;
     this.listenNativeDialogs              = false;
-    this.isFileDownloadingIntervalID      = null;
     this.iframeActionTargetWaitingStarted = false;
 
     this.pageInitialXhrBarrier = null;
@@ -56,6 +55,7 @@ var RunnerBase = function () {
 
     automation.init();
     this._initBarrier();
+    this._initDownloadBarrier();
 
     this._initApi();
     this._initIFrameBehavior();
@@ -136,11 +136,11 @@ var RunnerBase = function () {
             });
 
             runner.stepIterator.on(StepIterator.BEFORE_UNLOAD_EVENT_RAISED, function () {
-                runner._onBeforeUnload();
+                //runner._onBeforeUnload(); - step iterator should done this himself
             });
 
             runner.stepIterator.on(StepIterator.UNLOAD_EVENT_RAISED, function () {
-                runner._clearFileDownloadingInterval();
+                //runner._clearFileDownloadingInterval(); step iterator should done this himself
             });
 
             runner.listenNativeDialogs = true;
@@ -164,6 +164,10 @@ RunnerBase.prototype._destroy = function () {
 
 RunnerBase.prototype._initBarrier = function () {
     this.pageInitialXhrBarrier = new XhrBarrier();
+};
+
+RunnerBase.prototype._initDownloadBarrier = function () {
+
 };
 
 RunnerBase.prototype._initIFrameBehavior = function () {
@@ -261,7 +265,7 @@ RunnerBase.prototype._initIFrameBehavior = function () {
                 break;
 
             case RunnerBase.IFRAME_BEFORE_UNLOAD_REQUEST_CMD:
-                runner._onActionRun();
+                runner._onActionRun(); // Just flag for undone
 
                 runner._onBeforeUnload(true, function (res) {
                     msg = {
@@ -492,9 +496,10 @@ RunnerBase.prototype._initNativeDialogs = function () {
     });
 };
 //Handlers
-RunnerBase.prototype._onTestComplete    = function (e) {
+RunnerBase.prototype._onTestComplete = function (e) {
     this.stopped = true;
     this.eventEmitter.emit(this.TEST_COMPLETED_EVENT, {});
+    this._clearFileDownloadingInterval();
     e.callback();
 };
 
@@ -552,44 +557,10 @@ RunnerBase.prototype.setGlobalWaitFor = function (event, timeout) {
 };
 
 RunnerBase.prototype._onBeforeUnload = function (fromIFrame, callback) {
-    var runner = this;
-
-    if (this.stopped)
-        return;
-
-    //NOTE: we should expect file downloading request only after before unload event (T216625)
-    transport.asyncServiceMsg({ cmd: COMMAND.uncheckFileDownloadingFlag }, function () {
-
-        //NOTE: we need check it to determinate file downloading
-        runner.isFileDownloadingIntervalID = nativeMethods.setInterval.call(window, function () {
-            transport.asyncServiceMsg({ cmd: COMMAND.getAndUncheckFileDownloadingFlag }, function (res) {
-                if (res) {
-                    window.clearInterval(runner.isFileDownloadingIntervalID);
-                    runner.isFileDownloadingIntervalID = null;
-
-                    if (fromIFrame) {
-                        callback(res);
-                        return;
-                    }
-
-                    if (runner.stepIterator.state.stepDelayTimeout) {
-                        window.clearTimeout(runner.stepIterator.state.stepDelayTimeout);
-                        runner.stepIterator.state.stepDelayTimeout = null;
-                    }
-
-                    runner.stepIterator.state.pageUnloading = false;
-                    runner.stepIterator._runStep();
-                }
-            });
-        }, CHECK_FILE_DOWNLOADING_DELAY);
-    });
 };
 
 RunnerBase.prototype._clearFileDownloadingInterval = function () {
-    if (this.isFileDownloadingIntervalID) {
-        window.clearInterval(this.isFileDownloadingIntervalID);
-        this.isFileDownloadingIntervalID = null;
-    }
+
 };
 
 RunnerBase.prototype._clearIFrameExistenceWatcherInterval = function () {

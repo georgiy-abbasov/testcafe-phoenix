@@ -151,7 +151,7 @@ IFrameRunner.prototype._onBeforeUnload = function () {
         if (response.message.cmd === RunnerBase.IFRAME_BEFORE_UNLOAD_RESPONSE_CMD) {
             messageSandbox.off(messageSandbox.SERVICE_MSG_RECEIVED_EVENT, onMessage);
 
-            if (response.message.res) {
+           /* if (response.message.res) {
                 if (iFrameTestRunner.stepIterator.state.stepDelayTimeout) {
                     window.clearTimeout(iFrameTestRunner.stepIterator.state.stepDelayTimeout);
                     iFrameTestRunner.stepIterator.state.stepDelayTimeout = null;
@@ -159,7 +159,8 @@ IFrameRunner.prototype._onBeforeUnload = function () {
 
                 iFrameTestRunner.stepIterator.state.pageUnloading = false;
                 iFrameTestRunner.stepIterator._runStep();
-            }
+            }*/
+            iFrameTestRunner.stepIterator.onBeforeUnload();
         }
     }
 

@@ -72,7 +72,8 @@ export default class TestRun extends Session {
     }
 
     handleFileDownload () {
-        // TODO
+        // dummy from legacy
+        this.isFileDownloading = true;
     }
 
     handlePageError () {
@@ -260,4 +261,18 @@ ServiceMessages[CLIENT_MESSAGES.ready] = function (msg) {
     var responseTimeout = setTimeout(() => this._resolvePendingRequest(null), MAX_RESPONSE_DELAY);
 
     return new Promise((resolve, reject) => this.pendingRequest = { resolve, reject, responseTimeout });
+};
+
+// dummy copies from legacy
+
+ServiceMessages[CLIENT_MESSAGES.getAndUncheckFileDownloadingFlag] = function () {
+    var isFileDownloading = this.isFileDownloading;
+
+    this.isFileDownloading = false;
+
+    return isFileDownloading;
+};
+
+ServiceMessages[CLIENT_MESSAGES.uncheckFileDownloadingFlag] = function () {
+    this.isFileDownloading = false;
 };
