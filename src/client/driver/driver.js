@@ -1,5 +1,5 @@
 import hammerhead from './deps/hammerhead';
-import { RequestBarrier, pageUnloadBarrier, fileDownloadBarrier, eventUtils, domUtils, preventRealEvents, waitFor } from './deps/testcafe-core';
+import { RequestBarrier, pageUnloadBarrier, eventUtils, domUtils, preventRealEvents, waitFor } from './deps/testcafe-core';
 import { modalBackground } from './deps/testcafe-ui';
 
 import TEST_RUN_MESSAGES from '../../test-run/client-messages';
@@ -133,13 +133,7 @@ export default class Driver {
         // NOTE: postpone status sending if the page is unloading
 
         var checkForUnloading = () => {
-            if (this.beforeUnloadRaised) {
-                return fileDownloadBarrier
-                    .wait()
-                    .then(() => this.beforeUnloadRaised = false);
-            }
-
-            return Promise.resolve();
+            return this.beforeUnloadRaised ? pageUnloadBarrier.wait(0) : Promise.resolve();
         };
 
         return checkForUnloading()

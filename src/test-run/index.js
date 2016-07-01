@@ -60,10 +60,10 @@ export default class TestRun extends Session {
         this.injectable.scripts.push('/testcafe-driver.js');
         this.injectable.styles.push('/testcafe-ui-styles.css');
 
-        this.errs                     = [];
-        this.lastDriverStatusId       = null;
-        this.lastDriverStatusResponse = null;
-        this.isFileDownloading        = false;
+        this.errs                       = [];
+        this.lastDriverStatusId         = null;
+        this.lastDriverStatusResponse   = null;
+        this.downloadFilePromiseResolve = null;
     }
 
 
@@ -91,7 +91,8 @@ export default class TestRun extends Session {
     }
 
     handleFileDownload () {
-        this.isFileDownloading = true;
+        if (this.downloadFilePromiseResolve)
+            this.downloadFilePromiseResolve();
     }
 
     handlePageError (ctx, err) {
@@ -345,14 +346,6 @@ ServiceMessages[CLIENT_MESSAGES.readyForBrowserManipulation] = async function (m
     }
 };
 
-ServiceMessages[CLIENT_MESSAGES.getAndUncheckFileDownloadingFlag] = function () {
-    var isFileDownloading = this.isFileDownloading;
-
-    this.isFileDownloading = false;
-
-    return isFileDownloading;
-};
-
-ServiceMessages[CLIENT_MESSAGES.uncheckFileDownloadingFlag] = function () {
-    this.isFileDownloading = false;
+ServiceMessages[CLIENT_MESSAGES.isFileDownloading] = function () {
+    return new Promise(resolve => this.downloadFilePromiseResolve = resolve);
 };

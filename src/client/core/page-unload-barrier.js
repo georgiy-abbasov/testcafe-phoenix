@@ -1,18 +1,18 @@
 import hammerhead from './deps/hammerhead';
 import * as eventUtils from './utils/event';
 import delay from './utils/delay';
+import * as COMMAND from '../../legacy/test-run/command';
+import { asyncServiceMsg } from './transport';
 
 var Promise       = hammerhead.Promise;
 var browserUtils  = hammerhead.utils.browser;
 var nativeMethods = hammerhead.nativeMethods;
-
+var transport     = hammerhead.transport;
 
 const DEFAULT_BARRIER_TIMEOUT       = 500;
 const WAIT_FOR_UNLOAD_TIMEOUT       = 3000;
 const SHORT_WAIT_FOR_UNLOAD_TIMEOUT = 30;
 
-
-var waitingForUnload          = null;
 var waitingForUnloadTimeoutId = null;
 var waitingPromiseResolvers   = [];
 var unloading                 = false;
@@ -39,7 +39,7 @@ function handleSubmit () {
 }
 
 function onBeforeUnload (e) {
-    if (e.isFakeIEBeforeUnloadEvent)
+    if (e.isFakeIEEvent)
         return;
 
     if (!browserUtils.isIE) {
@@ -70,7 +70,6 @@ function prolongUnloadWaiting (timeout) {
 
     waitingForUnloadTimeoutId = nativeMethods.setTimeout.call(window, () => {
         waitingForUnloadTimeoutId = null;
-        waitingForUnload          = false;
 
         waitingPromiseResolvers.forEach(resolve => resolve());
         waitingPromiseResolvers = [];
@@ -84,21 +83,25 @@ export function init () {
     handleBeforeUnload();
 }
 
-export function wait (options) {
+export function wait (timeout) {
     return new Promise(resolve => {
-        delay(DEFAULT_BARRIER_TIMEOUT)
+        delay(timeout || DEFAULT_BARRIER_TIMEOUT)
             .then(() => {
-                if (options && options.isLegacy && unloading)
-                    return;
+                if (unloading) {
+                    transport.asyncServiceMsg({ cmd: COMMAND.isFileDownloading, disableResending: true })
+                        .then(function () {
+                            unloading = false;
 
-                if (!waitingForUnload)
+                            resolve();
+                        });
+
+                    return;
+                }
+
+                if (!waitingForUnloadTimeoutId)
                     resolve();
                 else
                     waitingPromiseResolvers.push(resolve);
             });
     });
-}
-
-export function resetUnloadingFlag () {
-    unloading = false;
 }

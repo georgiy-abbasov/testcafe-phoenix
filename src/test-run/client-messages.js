@@ -1,5 +1,5 @@
 export default {
-    ready:                            'ready',
-    readyForBrowserManipulation:      'ready-for-browser-manipulation',
-    getAndUncheckFileDownloadingFlag: 'get-and-uncheck-file-downloading-flag'
+    ready:                       'ready',
+    readyForBrowserManipulation: 'ready-for-browser-manipulation',
+    isFileDownloading:           'is-file-downloading'
 };

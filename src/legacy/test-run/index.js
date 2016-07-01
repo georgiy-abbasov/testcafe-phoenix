@@ -5,6 +5,7 @@ import { Session } from 'testcafe-hammerhead';
 import COMMAND from './command';
 import ERROR_TYPE from '../test-run-error/type';
 import LegacyTestRunErrorFormattableAdapter from '../test-run-error/formattable-adapter';
+import Promise from 'pinkie';
 
 
 // Const
@@ -38,6 +39,8 @@ export default class LegacyTestRun extends Session {
         this.injectable.scripts.push('/testcafe-ui.js');
         this.injectable.scripts.push('/testcafe-runner.js');
         this.injectable.styles.push('/testcafe-ui-styles.css');
+
+        this.downloadFilePromiseResolve = null;
     }
 
     _getPayloadScript () {
@@ -109,7 +112,8 @@ export default class LegacyTestRun extends Session {
     }
 
     handleFileDownload () {
-        this.isFileDownloading = true;
+        if (this.downloadFilePromiseResolve)
+            this.downloadFilePromiseResolve();
     }
 
     handlePageError (ctx, errMsg) {
@@ -145,16 +149,8 @@ ServiceMessages[COMMAND.getStepsSharedData] = function () {
     return this.stepsSharedData;
 };
 
-ServiceMessages[COMMAND.getAndUncheckFileDownloadingFlag] = function () {
-    var isFileDownloading = this.isFileDownloading;
-
-    this.isFileDownloading = false;
-
-    return isFileDownloading;
-};
-
-ServiceMessages[COMMAND.uncheckFileDownloadingFlag] = function () {
-    this.isFileDownloading = false;
+ServiceMessages[COMMAND.isFileDownloading] = function () {
+    return new Promise(resolve => this.downloadFilePromiseResolve = resolve);
 };
 
 ServiceMessages[COMMAND.nativeDialogsInfoSet] = function (msg) {

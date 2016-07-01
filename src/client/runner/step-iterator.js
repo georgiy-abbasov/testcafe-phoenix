@@ -173,21 +173,16 @@ StepIterator.prototype._runStep = function () {
 
 StepIterator.prototype._setupUnloadHandlers = function () {
     var iterator       = this;
-    var onBeforeUnload = () => iterator.eventEmitter.emit(StepIterator.BEFORE_UNLOAD_EVENT_RAISED);
-    var onUnload       = () => iterator.eventEmitter.emit(StepIterator.UNLOAD_EVENT_RAISED);
+    var onBeforeUnload = () => {
+        iterator.eventEmitter.emit(StepIterator.BEFORE_UNLOAD_EVENT_RAISED);
+        iterator.beforeUnload();
+    };
+
+    var onUnload = () => iterator.eventEmitter.emit(StepIterator.UNLOAD_EVENT_RAISED);
 
     //NOTE: IE fires onbeforeunload even if link was just clicked without actual unloading
-    function onBeforeUnloadIE () {
-        nativeMethods.setTimeout.call(window, function () {
-            //NOTE: except file downloading
-            if (document.readyState === 'loading' &&
-                !(document.activeElement && domUtils.isAnchorElement(document.activeElement) &&
-                document.activeElement.hasAttribute('download')))
-                onBeforeUnload();
-        }, 0);
-    }
 
-    hammerhead.on(hammerhead.EVENTS.beforeUnload, browserUtils.isIE ? onBeforeUnloadIE : onBeforeUnload);
+    hammerhead.on(hammerhead.EVENTS.beforeUnload, onBeforeUnload);
     eventUtils.bind(window, 'unload', onUnload);
 };
 
@@ -235,7 +230,7 @@ StepIterator.prototype._completeAsyncAction = function () {
         return;
 
     this.pageUnloadBarrier
-        .wait({isLegacy: true})
+        .wait()
         .then(() => iterator._runStep());
 };
 
@@ -529,5 +524,12 @@ StepIterator.prototype.takeScreenshot = function (callback, filePath) {
     });
 };
 
+StepIterator.prototype.beforeUnload = function () {
+    var iterator = this;
+
+    this.pageUnloadBarrier
+        .wait()
+        .then(() => iterator._runStep());
+};
 
 export default StepIterator;

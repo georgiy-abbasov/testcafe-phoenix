@@ -22,6 +22,7 @@ var transport             = testCafeCore.transport;
 var serviceUtils          = testCafeCore.serviceUtils;
 var domUtils              = testCafeCore.domUtils;
 var eventUtils            = testCafeCore.eventUtils;
+var pageUnloadBarrier     = testCafeCore.pageUnloadBarrier;
 
 var modalBackground = testCafeUI.modalBackground;
 
@@ -108,7 +109,6 @@ var RunnerBase = function () {
 
             runner.stepIterator.on(StepIterator.NEXT_STEP_STARTED_EVENT, function (e) {
                 runner._onNextStepStarted(e);
-                runner._clearFileDownloadingInterval();
             });
 
             runner.stepIterator.on(StepIterator.ACTION_TARGET_WAITING_STARTED_EVENT, function (e) {
@@ -131,16 +131,12 @@ var RunnerBase = function () {
                 runner._onGetStepsSharedData(e);
             });
 
-            runner.stepIterator.on(StepIterator.TAKE_SCREENSHOT_EVENT, function (e) {
-                runner._onTakeScreenshot(e);
-            });
-
             runner.stepIterator.on(StepIterator.BEFORE_UNLOAD_EVENT_RAISED, function () {
                 runner._onBeforeUnload();
             });
 
-            runner.stepIterator.on(StepIterator.UNLOAD_EVENT_RAISED, function () {
-                runner._clearFileDownloadingInterval();
+            runner.stepIterator.on(StepIterator.TAKE_SCREENSHOT_EVENT, function (e) {
+                runner._onTakeScreenshot(e);
             });
 
             runner.listenNativeDialogs = true;
@@ -217,7 +213,6 @@ RunnerBase.prototype._initIFrameBehavior = function () {
 
             case RunnerBase.IFRAME_NEXT_STEP_STARTED_CMD:
                 runner.executingStepInIFrameWindow = e.source;
-                runner._clearFileDownloadingInterval();
 
                 break;
 
@@ -263,13 +258,11 @@ RunnerBase.prototype._initIFrameBehavior = function () {
             case RunnerBase.IFRAME_BEFORE_UNLOAD_REQUEST_CMD:
                 runner._onActionRun();
 
-                runner._onBeforeUnload(true, function (res) {
-                    msg = {
-                        cmd: RunnerBase.IFRAME_BEFORE_UNLOAD_RESPONSE_CMD,
-                        res: res
-                    };
-                    messageSandbox.sendServiceMsg(msg, e.source);
-                });
+                msg = {
+                    cmd: RunnerBase.IFRAME_BEFORE_UNLOAD_RESPONSE_CMD
+                };
+                messageSandbox.sendServiceMsg(msg, e.source);
+
                 break;
         }
     }
@@ -551,47 +544,6 @@ RunnerBase.prototype.setGlobalWaitFor = function (event, timeout) {
     this.stepIterator.setGlobalWaitFor(event, timeout);
 };
 
-RunnerBase.prototype._onBeforeUnload = function (fromIFrame, callback) {
-    var runner = this;
-
-    if (this.stopped)
-        return;
-
-    //NOTE: we should expect file downloading request only after before unload event (T216625)
-    transport.asyncServiceMsg({ cmd: COMMAND.uncheckFileDownloadingFlag }, function () {
-
-        //NOTE: we need check it to determinate file downloading
-        runner.isFileDownloadingIntervalID = nativeMethods.setInterval.call(window, function () {
-            transport.asyncServiceMsg({ cmd: COMMAND.getAndUncheckFileDownloadingFlag }, function (res) {
-                if (res) {
-                    window.clearInterval(runner.isFileDownloadingIntervalID);
-                    runner.isFileDownloadingIntervalID = null;
-
-                    if (fromIFrame) {
-                        callback(res);
-                        return;
-                    }
-
-                    if (runner.stepIterator.state.stepDelayTimeout) {
-                        window.clearTimeout(runner.stepIterator.state.stepDelayTimeout);
-                        runner.stepIterator.state.stepDelayTimeout = null;
-                    }
-
-                    runner.stepIterator.pageUnloadBarrier.resetUnloadingFlag();
-                    runner.stepIterator._runStep();
-                }
-            });
-        }, CHECK_FILE_DOWNLOADING_DELAY);
-    });
-};
-
-RunnerBase.prototype._clearFileDownloadingInterval = function () {
-    if (this.isFileDownloadingIntervalID) {
-        window.clearInterval(this.isFileDownloadingIntervalID);
-        this.isFileDownloadingIntervalID = null;
-    }
-};
-
 RunnerBase.prototype._clearIFrameExistenceWatcherInterval = function () {
     if (this.iframeExistenceWatcherInterval !== -1) {
         window.clearInterval(this.iframeExistenceWatcherInterval);
@@ -599,5 +551,7 @@ RunnerBase.prototype._clearIFrameExistenceWatcherInterval = function () {
     }
 };
 
+RunnerBase.prototype._onBeforeUnload = function () {
+};
 
 export default RunnerBase;
