@@ -60,15 +60,21 @@ export default class TestRun extends Session {
         this.injectable.scripts.push('/testcafe-driver.js');
         this.injectable.styles.push('/testcafe-ui-styles.css');
 
-        this.errs                       = [];
-        this.lastDriverStatusId         = null;
-        this.lastDriverStatusResponse   = null;
-        this.downloadFilePromiseResolve = null;
+        this.errs                     = [];
+        this.lastDriverStatusId       = null;
+        this.lastDriverStatusResponse = null;
+
+        this.downloadFilePromiseResolvers = [];
+        this.downloadCounter              = 0;
     }
 
 
     // Hammerhead payload
     _getPayloadScript () {
+        // NOTE: We should on each fixture refresh information about past downloads
+        this.downloadFilePromiseResolvers = [];
+        this.downloadCounter              = 0;
+
         return Mustache.render(TEST_RUN_TEMPLATE, {
             testRunId:           this.id,
             browserHeartbeatUrl: this.browserConnection.heartbeatUrl,
@@ -91,8 +97,12 @@ export default class TestRun extends Session {
     }
 
     handleFileDownload () {
-        if (this.downloadFilePromiseResolve)
-            this.downloadFilePromiseResolve();
+        this.downloadCounter++;
+
+        if (this.downloadFilePromiseResolvers.length) {
+            this.downloadFilePromiseResolvers.shift()();
+            this.downloadCounter--;
+        }
     }
 
     handlePageError (ctx, err) {
@@ -347,5 +357,14 @@ ServiceMessages[CLIENT_MESSAGES.readyForBrowserManipulation] = async function (m
 };
 
 ServiceMessages[CLIENT_MESSAGES.isFileDownloading] = function () {
-    return new Promise(resolve => this.downloadFilePromiseResolve = resolve);
+    return new Promise(resolve => {
+        if (this.downloadCounter) {
+            this.downloadCounter--;
+            resolve();
+
+            return;
+        }
+
+        this.downloadFilePromiseResolvers.push(resolve);
+    });
 };

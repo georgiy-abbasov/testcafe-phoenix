@@ -40,10 +40,15 @@ export default class LegacyTestRun extends Session {
         this.injectable.scripts.push('/testcafe-runner.js');
         this.injectable.styles.push('/testcafe-ui-styles.css');
 
-        this.downloadFilePromiseResolve = null;
+        this.downloadFilePromiseResolvers = [];
+        this.downloadCounter              = 0;
     }
 
     _getPayloadScript () {
+        // NOTE: We should on each fixture refresh information about past downloads
+        this.downloadFilePromiseResolvers = [];
+        this.downloadCounter              = 0;
+
         var sharedJs = this.test.fixture.getSharedJs();
 
         if (!this.running) {
@@ -112,8 +117,12 @@ export default class LegacyTestRun extends Session {
     }
 
     handleFileDownload () {
-        if (this.downloadFilePromiseResolve)
-            this.downloadFilePromiseResolve();
+        this.downloadCounter++;
+
+        if (this.downloadFilePromiseResolvers.length) {
+            this.downloadFilePromiseResolvers.shift()();
+            this.downloadCounter--;
+        }
     }
 
     handlePageError (ctx, errMsg) {
@@ -150,7 +159,16 @@ ServiceMessages[COMMAND.getStepsSharedData] = function () {
 };
 
 ServiceMessages[COMMAND.isFileDownloading] = function () {
-    return new Promise(resolve => this.downloadFilePromiseResolve = resolve);
+    return new Promise(resolve => {
+        if (this.downloadCounter) {
+            this.downloadCounter--;
+            resolve();
+
+            return;
+        }
+
+        this.downloadFilePromiseResolvers.push(resolve);
+    });
 };
 
 ServiceMessages[COMMAND.nativeDialogsInfoSet] = function (msg) {

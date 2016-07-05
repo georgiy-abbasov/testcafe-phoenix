@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ClientFunction } from 'testcafe';
 
 fixture `Download`
-    .page `http://localhost:3000/download/pages/index.html`;
+    .page `http://localhost:3000/fixtures/download/pages/index.html`;
 
 const isDivClicked = ClientFunction(() => window.divClicked);
 
@@ -17,6 +17,7 @@ test('Simple download', async t => {
 test('Download after redirect', async t => {
     await t
         .click('#download-page-link')
+        .wait(6000)
         .click('#div');
 
     expect(await isDivClicked()).to.be.true;

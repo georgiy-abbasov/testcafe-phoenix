@@ -224,14 +224,16 @@ StepIterator.prototype._waitActionSideEffectsCompletion = function (action, call
 };
 
 StepIterator.prototype._completeAsyncAction = function () {
-    var iterator = this;
-
-    if (iterator.state.stopped)
+    if (this.state.stopped)
         return;
 
+    this._checkForUnloadAndRunStep();
+};
+
+StepIterator.prototype._checkForUnloadAndRunStep = function () {
     this.pageUnloadBarrier
-        .wait()
-        .then(() => iterator._runStep());
+            .wait()
+            .then(() => this._runStep());
 };
 
 StepIterator.prototype.callWithSharedDataContext = function (func) {
@@ -525,11 +527,7 @@ StepIterator.prototype.takeScreenshot = function (callback, filePath) {
 };
 
 StepIterator.prototype.beforeUnload = function () {
-    var iterator = this;
-
-    this.pageUnloadBarrier
-        .wait()
-        .then(() => iterator._runStep());
+    this._checkForUnloadAndRunStep();
 };
 
 export default StepIterator;

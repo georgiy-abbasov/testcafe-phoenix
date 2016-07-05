@@ -3,6 +3,9 @@ var fs   = require('fs');
 var path = require('path');
 
 
+var isFileDownloading = false;
+
+
 //The following code is copied from testcafe-hammerhead
 //NOTE: Url rewrite proxied requests (e.g. for iframes), so they will hit our server
 function urlRewriteProxyRequest (req, res, next) {
@@ -34,6 +37,8 @@ function preventCaching (res) {
 
 
 module.exports = function (app) {
+
+
     app.use(urlRewriteProxyRequest);
 
     app.get('/wrap-responseText-test/:isJSON', function (req, res) {
@@ -65,5 +70,16 @@ module.exports = function (app) {
     app.get('/respond-500', function (req, res) {
         res.statusCode = 500;
         res.send('Server error');
+    });
+
+    app.all('/service-msg/:100', function (req, res) {
+        if (isFileDownloading) {
+            isFileDownloading = false;
+            res.end();
+        }
+    });
+
+    app.all('/emulate-file-download/', function (req, res) {
+        isFileDownloading = true;
     });
 };

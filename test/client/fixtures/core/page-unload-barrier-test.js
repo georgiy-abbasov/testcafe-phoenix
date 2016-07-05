@@ -102,4 +102,23 @@ $(document).ready(function () {
                 start();
             });
     });
+
+    asyncTest('Should resolve wait promise if there is a file download', function () {
+        var iframeDocument = iframe.contentDocument;
+        var link           = iframeDocument.createElement('a');
+
+        link.href        = '/emulate-file-download/';
+        link.textContent = 'Emulate file download';
+
+        iframeDocument.body.appendChild(link);
+        link.click();
+
+
+        iframePageUnloadBarrier
+            .wait()
+            .then(function () {
+                ok(true, 'just check promise is resolved');
+                start();
+            });
+    });
 });

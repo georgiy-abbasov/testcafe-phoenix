@@ -7,15 +7,16 @@ import { asyncServiceMsg } from './transport';
 var Promise       = hammerhead.Promise;
 var browserUtils  = hammerhead.utils.browser;
 var nativeMethods = hammerhead.nativeMethods;
-var transport     = hammerhead.transport;
 
 const DEFAULT_BARRIER_TIMEOUT       = 500;
 const WAIT_FOR_UNLOAD_TIMEOUT       = 3000;
 const SHORT_WAIT_FOR_UNLOAD_TIMEOUT = 30;
+const FILE_DOWNLOAD_TIMEOUT         = 100;
 
 var waitingForUnloadTimeoutId = null;
 var waitingPromiseResolvers   = [];
 var unloading                 = false;
+var isDownloadChecking        = false;
 
 function overrideFormSubmit (form) {
     var submit = form.submit;
@@ -85,23 +86,26 @@ export function init () {
 
 export function wait (timeout) {
     return new Promise(resolve => {
-        delay(timeout || DEFAULT_BARRIER_TIMEOUT)
-            .then(() => {
-                if (unloading) {
-                    transport.asyncServiceMsg({ cmd: COMMAND.isFileDownloading, disableResending: true })
-                        .then(function () {
+        delay(timeout || DEFAULT_BARRIER_TIMEOUT).then(() => {
+            if (unloading) {
+                if (!isDownloadChecking) {
+                    isDownloadChecking = true;
+                    asyncServiceMsg({ cmd: COMMAND.isFileDownloading, disableResending: true })
+                        .then(() => {
                             unloading = false;
+                            isDownloadChecking = false;
 
                             resolve();
                         });
-
-                    return;
                 }
 
-                if (!waitingForUnloadTimeoutId)
-                    resolve();
-                else
-                    waitingPromiseResolvers.push(resolve);
-            });
+                return;
+            }
+
+            if (!waitingForUnloadTimeoutId)
+                resolve();
+            else
+                waitingPromiseResolvers.push(resolve);
+        });
     });
 }
