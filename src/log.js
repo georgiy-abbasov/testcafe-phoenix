@@ -33,7 +33,9 @@ export default {
     },
 
     write (text) {
+        /* eslint-disable no-console */
         console.error(text);
+        /* eslint-enable no-console */
     }
 };
 

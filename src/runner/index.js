@@ -7,6 +7,7 @@ import { flattenDeep as flatten, pull as remove } from 'lodash';
 import Bootstrapper from './bootstrapper';
 import Reporter from '../reporter';
 import Task from './task';
+import * as messages from './messages';
 
 
 const DEFAULT_SELECTOR_TIMEOUT = 10000;
@@ -133,13 +134,17 @@ export default class Runner extends EventEmitter {
     }
 
     run ({ skipJsErrors, quarantineMode, selectorTimeout } = {}) {
+        this.bootstrapper.once(messages.startBrowserPreparing, () => this.emit(messages.startBrowserPreparing));
+        this.bootstrapper.once(messages.startTestsPreparing, () => this.emit(messages.startTestsPreparing));
+        this.bootstrapper.once(messages.doneTestsPreparing, () => this.emit(messages.doneTestsPreparing));
+
         this.opts.skipJsErrors    = !!skipJsErrors;
         this.opts.quarantineMode  = !!quarantineMode;
         this.opts.selectorTimeout = selectorTimeout === void 0 ? DEFAULT_SELECTOR_TIMEOUT : selectorTimeout;
 
         var runTaskPromise = this.bootstrapper.createRunnableConfiguration()
             .then(({ reporterPlugin, browserSet, tests }) => {
-                this.emit('done-bootstrapping');
+                this.emit(messages.doneBrowsersPreparing);
 
                 return this._runTask(reporterPlugin, browserSet, tests);
             });

@@ -1,15 +1,20 @@
 import { flatten } from 'lodash';
 import Promise from 'pinkie';
+import { EventEmitter } from 'events';
 import Compiler from '../compiler';
 import BrowserConnection from '../browser/connection';
 import { GeneralError } from '../errors/runtime';
 import browserProviderPool from '../browser/provider/pool';
 import MESSAGE from '../errors/runtime/message';
 import BrowserSet from './browser-set';
+import remotesWizard from '../browser/remotes-wizard';
+import * as messages from './messages';
 
 
-export default class Bootstrapper {
+export default class Bootstrapper extends EventEmitter {
     constructor (browserConnectionGateway) {
+        super();
+
         this.browserConnectionGateway = browserConnectionGateway;
 
         this.sources  = [];
@@ -22,7 +27,8 @@ export default class Bootstrapper {
         if (!this.browsers.length)
             throw new GeneralError(MESSAGE.browserNotSet);
 
-        var browserInfo = await Promise.all(this.browsers.map(browser => browserProviderPool.getBrowserInfo(browser)));
+        var nonRemoteBrowsers = this.browsers.filter(browser => browser !== 'remote');
+        var browserInfo       = await Promise.all(nonRemoteBrowsers.map(browser => browserProviderPool.getBrowserInfo(browser)));
 
         return flatten(browserInfo);
     }
@@ -82,9 +88,20 @@ export default class Bootstrapper {
         // considered as the browser argument, and the tests path argument will have the predefined default value.
         // It's very ambiguous for the user, who might be confused by compilation errors from an unexpected test.
         // So, we need to retrieve the browser aliases and paths before tests compilation.
+
+        this.emit(messages.startTestsPreparing);
+
+        var tests = await this._getTests();
+
+        this.emit(messages.doneTestsPreparing);
+
+        var remoteBrowsersCount = this.browsers.filter(browser => browser === 'remote').length;
+        var remoteConnections   = await remotesWizard(this.browserConnectionGateway, remoteBrowsersCount, false);
+
+        this.emit(messages.startBrowserPreparing);
+
         var browserInfo = await this._getBrowserInfo();
-        var tests       = await this._getTests();
-        var browserSet  = await this._getBrowserConnections(browserInfo);
+        var browserSet  = await this._getBrowserConnections(browserInfo.concat(remoteConnections));
 
         return { reporterPlugin, browserSet, tests };
     }

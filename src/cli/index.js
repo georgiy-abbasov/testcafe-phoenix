@@ -4,9 +4,9 @@ import browserProviderPool from '../browser/provider/pool';
 import { GeneralError, APIError } from '../errors/runtime';
 import MESSAGE from '../errors/runtime/message';
 import CliArgumentParser from './argument-parser';
-import log from './log';
-import remotesWizard from './remotes-wizard';
+import log from '../log';
 import createTestCafe from '../';
+import * as runnerMessages from '../runner/messages';
 
 function exit (code) {
     log.hideSpinner();
@@ -39,17 +39,16 @@ function error (err) {
 }
 
 async function runTests (argParser) {
-    var opts  = argParser.opts;
-    var port1 = opts.ports && opts.ports[0];
-    var port2 = opts.ports && opts.ports[1];
-
-    log.showSpinner();
-
+    var opts           = argParser.opts;
+    var port1          = opts.ports && opts.ports[0];
+    var port2          = opts.ports && opts.ports[1];
     var testCafe       = await createTestCafe(opts.hostname, port1, port2);
-    var remoteBrowsers = await remotesWizard(testCafe, argParser.remoteCount, opts.qrCode);
-    var browsers       = argParser.browsers.concat(remoteBrowsers);
-    var runner         = testCafe.createRunner();
-    var failed         = 0;
+    var remoteBrowsers = getRemoteAliases(argParser.remoteCount);
+
+
+    var browsers = argParser.browsers.concat(remoteBrowsers);
+    var runner   = testCafe.createRunner();
+    var failed   = 0;
 
     runner
         .src(argParser.src)
@@ -58,7 +57,10 @@ async function runTests (argParser) {
         .filter(argParser.filter)
         .screenshots(opts.screenshots, opts.screenshotsOnFails);
 
-    runner.once('done-bootstrapping', () => log.hideSpinner());
+    runner.once(runnerMessages.doneTestsPreparing, () => log.hideSpinner());
+    runner.once(runnerMessages.startTestsPreparing, () => log.showSpinner());
+    runner.once(runnerMessages.startBrowserPreparing, () => log.showSpinner());
+    runner.once(runnerMessages.doneBrowsersPreparing, () => log.hideSpinner());
 
     try {
         failed = await runner.run({
@@ -106,6 +108,15 @@ function useLocalInstallation () {
     }
 
     return false;
+}
+
+function getRemoteAliases (count) {
+    var aliases = [];
+
+    for (var i = 0; i < count; i++)
+        aliases.push('remote');
+
+    return aliases;
 }
 
 
