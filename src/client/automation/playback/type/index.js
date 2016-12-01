@@ -33,6 +33,7 @@ export default class TypeAutomation {
         this.currentPos      = 0;
         this.currentKeyCode  = null;
         this.currentCharCode = null;
+        this.currentKeyCode  = null;
 
         this.eventArgs = {
             options: null,
@@ -63,7 +64,7 @@ export default class TypeAutomation {
         return innerElement;
     }
 
-    _calculateEventArguments (keyCode, charCode) {
+    _calculateEventArguments (useCharCode) {
         var activeElement     = domUtils.getActiveElement();
         var isContentEditable = domUtils.isContentEditableElement(this.element);
         var element           = this.eventArgs.element || this.element;
@@ -73,11 +74,12 @@ export default class TypeAutomation {
             element = TypeAutomation.findTextEditableChild(activeElement) || activeElement;
 
         var options = extend({
-            keyCode: keyCode
+            keyCode: useCharCode ? this.currentCharCode : this.currentKeyCode,
+            key:     this.currentKey
         }, this.modifiers);
 
-        if (charCode !== void 0)
-            options.charCode = charCode;
+        if (useCharCode)
+            options.charCode = this.currentCharCode;
 
         return { element, options };
     }
@@ -158,8 +160,11 @@ export default class TypeAutomation {
     }
 
     _typingStep () {
-        this.currentKeyCode  = getKeyCode(this.text.charAt(this.currentPos));
+        var char = this.text.charAt(this.currentPos);
+
+        this.currentKeyCode  = getKeyCode(char);
         this.currentCharCode = this.text.charCodeAt(this.currentPos);
+        this.currentKey      = this.currentKeyCode === 13 ? 'Enter' : char;
 
         this._keydown();
         this._keypress();
@@ -168,7 +173,7 @@ export default class TypeAutomation {
     }
 
     _keydown () {
-        this.eventArgs = this._calculateEventArguments(this.currentKeyCode);
+        this.eventArgs = this._calculateEventArguments();
 
         this.eventState.simulateKeypress = eventSimulator.keydown(this.eventArgs.element, this.eventArgs.options);
     }
@@ -177,7 +182,7 @@ export default class TypeAutomation {
         if (this.eventState.simulateKeypress === false)
             return;
 
-        this.eventArgs = this._calculateEventArguments(this.currentCharCode, this.currentCharCode);
+        this.eventArgs = this._calculateEventArguments(true);
 
         this.eventState.simulateTypeChar = eventSimulator.keypress(this.eventArgs.element, this.eventArgs.options);
     }
@@ -185,7 +190,7 @@ export default class TypeAutomation {
     _keyup () {
         var elementForTyping = this.eventArgs.element;
 
-        this.eventArgs = this._calculateEventArguments(this.currentKeyCode);
+        this.eventArgs = this._calculateEventArguments();
 
         return this
             ._typeChar(elementForTyping)

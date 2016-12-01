@@ -151,7 +151,11 @@ $(document).ready(function () {
 
         $commonInput[0].value = 'old text';
 
-        var type = new TypeAutomation($commonInput[0], text, new TypeOptions({ replace: true, offsetX: 5, offsetY: 5 }));
+        var type = new TypeAutomation($commonInput[0], text, new TypeOptions({
+            replace: true,
+            offsetX: 5,
+            offsetY: 5
+        }));
 
         type
             .run()
@@ -329,4 +333,75 @@ $(document).ready(function () {
                 start();
             });
     });
+
+    if (!browserUtils.isSafari) {
+        asyncTest('T334620 - Wrong \'key\' property in keyEvent objects (type)', function () {
+            var $textarea           = $('<textarea></textarea>').addClass(TEST_ELEMENT_CLASS).appendTo('body');
+            var keydownKeyProperty  = '';
+            var keypressKeyProperty = '';
+            var keyupKeyProperty    = '';
+
+            $textarea.on({
+                keydown: function (e) {
+                    keydownKeyProperty += e.key;
+                },
+
+                keypress: function (e) {
+                    keypressKeyProperty += e.key;
+                },
+
+                keyup: function (e) {
+                    keyupKeyProperty += e.key;
+                }
+            });
+
+            var type = new TypeAutomation($textarea[0], 'aA \r', new TypeOptions());
+
+            debugger;
+            type
+                .run()
+                .then(function () {
+                    equal(keydownKeyProperty, 'aA Enter');
+                    equal(keypressKeyProperty, 'aA Enter');
+                    equal(keyupKeyProperty, 'aA Enter');
+                    equal($textarea.val(), 'aA \n');
+                    start();
+                });
+        });
+    }
+    else {
+        asyncTest('T334620 - Wrong \'key\' property in keyEvent objects (type)', function () {
+            var $textarea           = $('<textarea></textarea>').addClass(TEST_ELEMENT_CLASS).appendTo('body');
+            var keydownKeyProperty  = '';
+            var keypressKeyProperty = '';
+            var keyupKeyProperty    = '';
+
+            $textarea.on({
+                keydown: function (e) {
+                    keydownKeyProperty += e.key;
+                },
+
+                keypress: function (e) {
+                    keypressKeyProperty += e.key;
+                },
+
+                keyup: function (e) {
+                    keyupKeyProperty += e.key;
+                }
+            });
+
+            var type = new TypeAutomation($textarea[0], 'aA \r', new TypeOptions());
+
+            debugger;
+            type
+                .run()
+                .then(function () {
+                    equal(keydownKeyProperty, 'aA Enter');
+                    equal(keypressKeyProperty, 'aA Enter');
+                    equal(keyupKeyProperty, 'aA Enter');
+                    equal($textarea.val(), 'aA \n');
+                    start();
+                });
+        });
+    }
 });

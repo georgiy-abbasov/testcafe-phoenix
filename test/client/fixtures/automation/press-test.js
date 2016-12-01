@@ -11,6 +11,7 @@ preventRealEvents();
 
 var hammerhead    = window.getTestCafeModule('hammerhead');
 var iframeSandbox = hammerhead.sandbox.iframe;
+var browserUtils  = hammerhead.utils.browser;
 
 
 $(document).ready(function () {
@@ -156,4 +157,41 @@ $(document).ready(function () {
                     });
             });
     });
+
+    if (!browserUtils.isSafari) {
+        asyncTest('T334620 - Wrong \'key\' property in keyEvent objects (press)', function () {
+            var $textarea           = $('<textarea></textarea>').addClass(TEST_ELEMENT_CLASS).appendTo('body');
+            var keydownKeyProperty  = '';
+            var keypressKeyProperty = '';
+            var keyupKeyProperty    = '';
+
+            $textarea.focus();
+
+            $textarea.on({
+                keydown: function (e) {
+                    keydownKeyProperty += e.key;
+                },
+
+                keypress: function (e) {
+                    keypressKeyProperty += e.key;
+                },
+
+                keyup: function (e) {
+                    keyupKeyProperty += e.key;
+                }
+            });
+
+            var press = new PressAutomation(parseKeySequence('a A shift+a ! enter shift+1 shift+!').combinations);
+
+            press
+                .run()
+                .then(function () {
+                    equal(keydownKeyProperty, 'aAShiftAShift!EnterShift!Shift!');
+                    equal(keypressKeyProperty, 'aAA!Enter!!');
+                    equal(keyupKeyProperty, 'aAAShift!ShiftEnter!Shift!Shift');
+                    equal($textarea.val(), 'aAA!\n!!');
+                    start();
+                });
+        });
+    }
 });

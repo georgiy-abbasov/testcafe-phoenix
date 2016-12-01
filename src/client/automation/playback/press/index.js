@@ -40,11 +40,11 @@ export default class PressAutomation {
     }
 
     static _getKeyPressSimulators (keyCombination) {
-        var keys = getKeyArray(keyCombination);
+        var keysArray = getKeyArray(keyCombination);
 
-        keys = excludeShiftModifiedKeys(keys);
+        var { keys, keysForKeyEvent } = excludeShiftModifiedKeys(keysArray);
 
-        return arrayUtils.map(keys, key => new KeyPressSimulator(key));
+        return arrayUtils.map(keys, (key, index) => new KeyPressSimulator(key, keysForKeyEvent[index]));
     }
 
     static _getShortcuts (keyCombination) {
