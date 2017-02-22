@@ -296,31 +296,7 @@ export default class TypeAutomation {
         var typingStep       = () => {
             if (DIGIT_RE.test(element.value[this.caretPos])) {
                 if (DIGIT_RE.test(this.text[textCaretPos])) {
-                    if (this.caretPos === 0 && this.text[textCaretPos] > 3) {
-                        element.value = replaceCharAt(element.value, 0, 0);
-                        this.caretPos++;
-                    }
-
-                    if (this.caretPos === 1 && this.text[textCaretPos] > 9 && elementValue[1] > 0) {
-                        element.value = replaceCharAt(element.value, 0, 2);
-                        element.value = replaceCharAt(element.value, 0, 3);
-                    }
-
-                    if (this.caretPos === 3 && this.text[textCaretPos] > 6) {
-                        element.value = replaceCharAt(element.value, 3, 0);
-                        this.caretPos++;
-                    }
-
-                    if (this.caretPos === 5 && this.text[textCaretPos] > 6) {
-                        element.value = replaceCharAt(element.value, 5, 0);
-                        this.caretPos++;
-                    }
-
-                    element.value = replaceCharAt(element.value, this.caretPos, this.text[textCaretPos]);
-
-                    eventSimulator.input(element);
-                    eventSimulator.change(element);
-
+                    this._typeDigitIntoTimeInput(textCaretPos, element);
                     this.caretPos++;
                 }
 
@@ -337,6 +313,33 @@ export default class TypeAutomation {
         };
 
         return whilst(() => !isTypingFinished(), () => typingStep());
+    }
+
+    _typeDigitIntoTimeInput (textCaretPos, element) {
+        if (this.caretPos === 0 && this.text[textCaretPos] > 3) {
+            element.value = replaceCharAt(element.value, 0, 0);
+            this.caretPos++;
+        }
+
+        if (this.caretPos === 1 && this.text[textCaretPos] > 9 && elementValue[1] > 0) {
+            element.value = replaceCharAt(element.value, 0, 2);
+            element.value = replaceCharAt(element.value, 0, 3);
+        }
+
+        if (this.caretPos === 3 && this.text[textCaretPos] > 6) {
+            element.value = replaceCharAt(element.value, 3, 0);
+            this.caretPos++;
+        }
+
+        if (this.caretPos === 5 && this.text[textCaretPos] > 6) {
+            element.value = replaceCharAt(element.value, 5, 0);
+            this.caretPos++;
+        }
+
+        element.value = replaceCharAt(element.value, this.caretPos, this.text[textCaretPos]);
+
+        eventSimulator.input(element);
+        eventSimulator.change(element);
     }
 
 
