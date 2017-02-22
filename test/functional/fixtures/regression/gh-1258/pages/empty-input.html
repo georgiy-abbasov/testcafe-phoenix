@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GH-1258</title>
+</head>
+<body>
+<input id="input" type="time">
+<script>
+    window.inputEventRaisedCount = 0;
+    window.changeEventRaisedCount = 0;
+
+    var input = document.querySelector('input');
+
+    input.addEventListener('input', function () {
+        window.inputEventRaisedCount++;
+    });
+
+    input.addEventListener('change', function () {
+        window.changeEventRaisedCount++;
+    });
+</script>
+</body>
+</html>

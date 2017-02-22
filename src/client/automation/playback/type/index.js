@@ -14,12 +14,14 @@ var Promise               = hammerhead.Promise;
 var extend                = hammerhead.utils.extend;
 var eventSimulator        = hammerhead.eventSandbox.eventSimulator;
 var elementEditingWatcher = hammerhead.eventSandbox.elementEditingWatcher;
+var browserUtils          = hammerhead.utils.browser;
 
 var domUtils        = testCafeCore.domUtils;
 var contentEditable = testCafeCore.contentEditable;
 var textSelection   = testCafeCore.textSelection;
 var delay           = testCafeCore.delay;
 var SPECIAL_KEYS    = testCafeCore.KEY_MAPS.specialKeys;
+var replaceCharAt   = testCafeCore.replaceCharAt;
 
 
 export default class TypeAutomation {
@@ -157,6 +159,9 @@ export default class TypeAutomation {
 
         var isContentEditable = domUtils.isContentEditableElement(this.element);
 
+        if (domUtils.isTimeInput(this.element))
+            return this._typeToTimeInput(this.element);
+
         if (this.replace) {
             if (domUtils.isTextEditableElementAndEditingAllowed(this.element))
                 textSelection.select(this.element);
@@ -263,6 +268,43 @@ export default class TypeAutomation {
         typeChar(element, this.text);
         return delay(this.automationSettings.keyActionStepDelay);
     }
+
+    _typeToTimeInput (element) {
+        if (element.min && this.text < element.min || element.max && this.text > element.max)
+            return null;
+
+        if (element.value === '' || browserUtils.isMSEdge) {
+            element.value = this.text;
+
+            eventSimulator.input(element);
+            eventSimulator.change(element);
+
+            return null;
+        }
+
+        var position         = 0;
+        var isTypingFinished = () => position === this.text.length;
+        var typingStep       = () => {
+            if (element.value[position]) {
+                element.value = replaceCharAt(element.value, position, this.text[position]);
+                position++;
+            }
+            else {
+                element.value += this.text.substr(position, this.text.length);
+                position = this.text.length;
+            }
+
+            if (/^\d$/.test(this.text[position])) {
+                eventSimulator.input(element);
+                eventSimulator.change(element);
+            }
+
+            return Promise.resolve();
+        };
+
+        return whilst(() => !isTypingFinished(), () => typingStep());
+    }
+
 
     run () {
         return this

@@ -47,7 +47,7 @@ export function focusAndSetSelection (element, simulateFocus, caretPos) {
 
         // NOTE: in WebKit, if selection was never set in an input element, the focus method selects all the
         // text in this element. So, we should call select before focus to set the caret to the first symbol.
-        if (simulateFocus && browserUtils.isWebKit && isTextEditable)
+        if (simulateFocus && browserUtils.isWebKit && isTextEditable && !domUtils.isTimeInput(element))
             textSelection.select(element, 0, 0);
 
         // NOTE: we should call focus for the element related with a 'label' that has the 'for' attribute
@@ -91,7 +91,8 @@ export function focusAndSetSelection (element, simulateFocus, caretPos) {
                 return;
             }
 
-            setCaretPosition(element, caretPos);
+            if (!domUtils.isTimeInput(element))
+                setCaretPosition(element, caretPos);
 
             // NOTE: we can't avoid the element being focused because the setSelection method leads to focusing.
             // So, we just focus the previous active element without handlers if we don't need focus here

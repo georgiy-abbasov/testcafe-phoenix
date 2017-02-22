@@ -459,3 +459,7 @@ export function findIframeByWindow (iframeWindow, iframeDestinationWindow) {
 export function isEditableFormElement (element) {
     return isTextEditableElement(element) || isSelectElement(element);
 }
+
+export function isTimeInput (element) {
+    return isInputElement(element) && element.type.toLowerCase() === 'time';
+}
