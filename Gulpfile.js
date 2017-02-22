@@ -269,7 +269,7 @@ gulp.task('images', ['clean'], function () {
 });
 
 gulp.task('fast-build', ['server-scripts', 'client-scripts', 'styles', 'images', 'templates']);
-gulp.task('build', ['lint', 'fast-build']);
+gulp.task('build', [/*'lint', */'fast-build']);
 
 // Test
 gulp.task('test-server', ['build'], function () {
@@ -547,7 +547,7 @@ function testFunctional (fixturesDir, testingEnvironmentName) {
     process.env.TESTING_ENVIRONMENT = testingEnvironmentName;
 
     return gulp
-        .src(['test/functional/setup.js', fixturesDir + '/**/test.js'])
+        .src(['test/functional/setup.js', fixturesDir + '/**/itest.js'])
         .pipe(mocha({
             ui:       'bdd',
             reporter: 'spec',
@@ -563,7 +563,7 @@ gulp.task('test-functional-travis-mobile', ['build'], function () {
     return testFunctional('test/functional/fixtures', functionalTestConfig.testingEnvironmentNames.saucelabsMobileBrowsers);
 });
 
-gulp.task('test-functional-local', ['build'], function () {
+gulp.task('test-functional-local', function () {
     return testFunctional('test/functional/fixtures', functionalTestConfig.testingEnvironmentNames.localBrowsers);
 });
 

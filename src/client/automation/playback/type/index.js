@@ -23,6 +23,8 @@ var delay           = testCafeCore.delay;
 var SPECIAL_KEYS    = testCafeCore.KEY_MAPS.specialKeys;
 var replaceCharAt   = testCafeCore.replaceCharAt;
 
+const DIGIT_RE = /^\d$/;
+
 
 export default class TypeAutomation {
     constructor (element, text, typeOptions) {
@@ -126,7 +128,7 @@ export default class TypeAutomation {
 
         if (activeElement !== this.element) {
             var { offsetX, offsetY } = getDefaultAutomationOffsets(this.element);
-            var clickOptions         = new ClickOptions({
+            var clickOptions = new ClickOptions({
                 offsetX:   this.elementChanged ? offsetX : this.offsetX,
                 offsetY:   this.elementChanged ? offsetY : this.offsetY,
                 speed:     this.speed,
@@ -144,11 +146,13 @@ export default class TypeAutomation {
         if (isTextEditable)
             elementEditingWatcher.watchElementEditing(this.element);
 
-        var selectionStart    = textSelection.getSelectionStart(this.element);
-        var isEditableElement = isTextEditable || isContentEditable;
+        if (!domUtils.isTimeInput) {
+            var selectionStart    = textSelection.getSelectionStart(this.element);
+            var isEditableElement = isTextEditable || isContentEditable;
 
-        if (isEditableElement && !isNaN(parseInt(this.caretPos, 10)) && this.caretPos !== selectionStart)
-            textSelection.select(this.element, this.caretPos, this.caretPos);
+            if (isEditableElement && !isNaN(parseInt(this.caretPos, 10)) && this.caretPos !== selectionStart)
+                textSelection.select(this.element, this.caretPos, this.caretPos);
+        }
 
         return Promise.resolve();
     }
@@ -270,6 +274,8 @@ export default class TypeAutomation {
     }
 
     _typeToTimeInput (element) {
+        debugger;
+
         if (element.min && this.text < element.min || element.max && this.text > element.max)
             return null;
 
@@ -282,21 +288,49 @@ export default class TypeAutomation {
             return null;
         }
 
-        var position         = 0;
-        var isTypingFinished = () => position === this.text.length;
+        if (!this.caretPos)
+            this.caretPos = 0;
+
+        var textCaretPos     = 0;
+        var isTypingFinished = () => textCaretPos === this.text.length;
         var typingStep       = () => {
-            if (element.value[position]) {
-                element.value = replaceCharAt(element.value, position, this.text[position]);
-                position++;
+            if (DIGIT_RE.test(element.value[this.caretPos])) {
+                if (DIGIT_RE.test(this.text[textCaretPos])) {
+                    if (this.caretPos === 0 && this.text[textCaretPos] > 3) {
+                        element.value = replaceCharAt(element.value, 0, 0);
+                        this.caretPos++;
+                    }
+
+                    if (this.caretPos === 1 && this.text[textCaretPos] > 9 && elementValue[1] > 0) {
+                        element.value = replaceCharAt(element.value, 0, 2);
+                        element.value = replaceCharAt(element.value, 0, 3);
+                    }
+
+                    if (this.caretPos === 3 && this.text[textCaretPos] > 6) {
+                        element.value = replaceCharAt(element.value, 3, 0);
+                        this.caretPos++;
+                    }
+
+                    if (this.caretPos === 5 && this.text[textCaretPos] > 6) {
+                        element.value = replaceCharAt(element.value, 5, 0);
+                        this.caretPos++;
+                    }
+
+                    element.value = replaceCharAt(element.value, this.caretPos, this.text[textCaretPos]);
+
+                    eventSimulator.input(element);
+                    eventSimulator.change(element);
+
+                    this.caretPos++;
+                }
+
+                textCaretPos++;
             }
             else {
-                element.value += this.text.substr(position, this.text.length);
-                position = this.text.length;
-            }
+                if (!DIGIT_RE.test(this.text[textCaretPos]))
+                    textCaretPos++;
 
-            if (/^\d$/.test(this.text[position])) {
-                eventSimulator.input(element);
-                eventSimulator.change(element);
+                this.caretPos++;
             }
 
             return Promise.resolve();
