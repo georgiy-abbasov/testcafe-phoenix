@@ -34,7 +34,7 @@ const MAX_RESPONSE_DELAY              = 2 * 60 * 1000;
 
 
 export default class TestRun extends Session {
-    constructor (test, browserConnection, screenshotCapturer, warningLog, opts) {
+    constructor (test, browserConnection, screenshotCapturer, warningLog, opts, onEachPageHook) {
         var uploadsRoot = path.dirname(test.fixture.path);
 
         super(uploadsRoot);
@@ -45,7 +45,11 @@ export default class TestRun extends Session {
 
         this.state = STATE.initial;
 
-        this.driverTaskQueue       = [];
+        this.shadowTaskQueue        = [];
+        this.workingDriverTaskQueue = [];
+
+        this.onEachPageHookWorking = false; // move to same named controller
+
         this.testDoneCommandQueued = false;
 
         this.dialogHandler = null;
@@ -53,9 +57,10 @@ export default class TestRun extends Session {
         this.pendingRequest   = null;
         this.pendingPageError = null;
 
-        this.controller = null;
-        this.ctx        = Object.create(null);
-        this.fixtureCtx = null;
+        this.controller     = null;
+        this.ctx            = Object.create(null);
+        this.fixtureCtx     = null;
+        this.onEachPageHook = onEachPageHook;
 
         this.errs = [];
 
@@ -127,7 +132,6 @@ export default class TestRun extends Session {
         ctx.redirect(ctx.toProxyUrl('about:error'));
     }
 
-
     // Test function execution
     async _executeTestFn (state, fn) {
         this.state = state;
@@ -168,6 +172,29 @@ export default class TestRun extends Session {
         return true;
     }
 
+    async _runOnEachPageHook (msg) {
+        this.onEachPageHookWorking = true;
+
+        var result = await this.onEachPageHook.runOnEachPageHook(this);
+
+        console.log('Shutting down the hook');
+
+        this.onEachPageHookWorking = false;
+
+        if (!result) {
+            this.stop();
+
+            return;
+        }
+
+        // Resume main test where we stopped before hook
+        var lastDriverStatusResponse = this._handleDriverRequest(msg.status);
+
+        // Resend the command from main task queue on which we stopped
+        if (this.pendingRequest && this.currentDriverTask)
+            this._resolvePendingRequest(this.currentDriverTask.command);
+    }
+
     async start () {
         TestRun.activeTestRuns[this.id] = this;
 
@@ -178,6 +205,10 @@ export default class TestRun extends Session {
             await this._runAfterHook();
         }
 
+        await this.stop();
+    }
+
+    async stop () {
         await this.executeCommand(new TestDoneCommand());
         this._addPendingPageErrorIfAny();
 
@@ -224,7 +255,6 @@ export default class TestRun extends Session {
 
     _removeAllNonServiceTasks () {
         this.driverTaskQueue = this.driverTaskQueue.filter(driverTask => isServiceCommand(driverTask.command));
-
         this.browserManipulationQueue.removeAllNonServiceManipulations();
     }
 
@@ -324,6 +354,7 @@ export default class TestRun extends Session {
     async executeCommand (command, callsite) {
         this.debugLog.command(command);
 
+
         if (this.pendingPageError && isCommandRejectableByPageError(command))
             return this._rejectCommandWithPageError(callsite);
 
@@ -369,6 +400,17 @@ export default class TestRun extends Session {
 
         return Promise.reject(err);
     }
+
+    get driverTaskQueue () {
+        return this.onEachPageHookWorking ? this.shadowTaskQueue : this.workingDriverTaskQueue;
+    }
+
+    set driverTaskQueue (taskQueue) {
+        if (this.onEachPageHookWorking)
+            this.shadowTaskQueue = taskQueue;
+        else
+            this.workingDriverTaskQueue = taskQueue;
+    }
 }
 
 
@@ -379,21 +421,44 @@ TestRun.activeTestRuns = {};
 // Service message handlers
 var ServiceMessages = TestRun.prototype;
 
-ServiceMessages[CLIENT_MESSAGES.ready] = function (msg) {
+ServiceMessages[CLIENT_MESSAGES.ready] = async function (msg) {
     this.debugLog.driverMessage(msg);
 
     this._clearPendingRequest();
 
+    var isDriverRepeatStatusMessage = msg.status.id === this.lastDriverStatusId;
+
+    if ((isDriverRepeatStatusMessage || msg.status.pageLoad || msg.status.resent) &&
+        this.onEachPageHook.isHookActual(this)) {
+
+        // Clean the task queue if reload was appeared while we executed the hook
+        if (this.onEachPageHookWorking) {
+            console.log('We can fall here');
+            this.shadowTaskQueue = [];
+        }
+
+        this._runOnEachPageHook(msg);
+
+        // We should leave pending request, cause it's needed for hook execution context
+        var responseTimeout = setTimeout(() => this._resolvePendingRequest(null), MAX_RESPONSE_DELAY);
+
+        return new Promise((resolve, reject) => {
+            this.pendingRequest = { resolve, reject, responseTimeout };
+        });
+    }
+
     // NOTE: the driver sends the status for the second time if it didn't get a response at the
     // first try. This is possible when the page was unloaded after the driver sent the status.
-    if (msg.status.id === this.lastDriverStatusId)
+    else if (isDriverRepeatStatusMessage && this.lastDriverStatusResponse) {
         return this.lastDriverStatusResponse;
+    }
 
     this.lastDriverStatusId       = msg.status.id;
     this.lastDriverStatusResponse = this._handleDriverRequest(msg.status);
 
-    if (this.lastDriverStatusResponse)
+    if (this.lastDriverStatusResponse) {
         return this.lastDriverStatusResponse;
+    }
 
     // NOTE: browsers abort an opened xhr request after a certain timeout (the actual duration depends on the browser).
     // To avoid this, we send an empty response after 2 minutes if we didn't get any command.
@@ -402,7 +467,8 @@ ServiceMessages[CLIENT_MESSAGES.ready] = function (msg) {
     return new Promise((resolve, reject) => {
         this.pendingRequest = { resolve, reject, responseTimeout };
     });
-};
+}
+;
 
 ServiceMessages[CLIENT_MESSAGES.readyForBrowserManipulation] = async function (msg) {
     this.debugLog.driverMessage(msg);

@@ -16,6 +16,8 @@ export default class Fixture extends TestingUnit {
         this.beforeFn = null;
         this.afterFn  = null;
 
+        this.onEachPageFn = null;
+
         return this.apiOrigin;
     }
 
@@ -58,6 +60,14 @@ export default class Fixture extends TestingUnit {
         assertType(is.function, 'afterEach', 'fixture.afterEach hook', fn);
 
         this.afterEachFn = TestingUnit._wrapTestFunction(fn);
+
+        return this.apiOrigin;
+    }
+
+    _onEachPage$ (fn) {
+        assertType(is.function, 'onEachPage', 'fixture.onEachPage hook', fn);
+
+        this.onEachPageFn = TestingUnit._wrapTestFunction(fn);
 
         return this.apiOrigin;
     }

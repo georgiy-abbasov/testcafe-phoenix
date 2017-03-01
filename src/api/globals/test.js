@@ -11,6 +11,8 @@ export default class Test extends TestingUnit {
         this.beforeFn = null;
         this.afterFn  = null;
 
+        this.onEachPageFn = null;
+
         return this.apiOrigin;
     }
 
@@ -39,6 +41,14 @@ export default class Test extends TestingUnit {
         assertType(is.function, 'after', 'test.after hook', fn);
 
         this.afterFn = TestingUnit._wrapTestFunction(fn);
+
+        return this.apiOrigin;
+    }
+
+    _onEachPage$ (fn) {
+        assertType(is.function, 'onEachPage', 'test.onEachPage hook', fn);
+
+        this.onEachPageFn = TestingUnit._wrapTestFunction(fn);
 
         return this.apiOrigin;
     }

@@ -131,3 +131,33 @@ describe('[API] fixture.before/fixture.after hooks', function () {
         return runTests('./testcafe-fixtures/fixture-ctx.js', null, { only: 'chrome, firefox' });
     });
 });
+
+describe('API fixture.onEachPage hook', function () {
+    it('Should run hook for all tests', function () {
+
+    });
+
+    it('Should not run test if hook fails', function () {
+        return runTests().catch();
+    })
+});
+
+describe('API test.onEachPage hook', function () {
+    it('Should run hook for test', function () {
+
+    });
+
+    it('Should fail test if hook fails', function () {
+        return runTests().catch();
+    })
+});
+
+describe('API testController.onEachPage hook', function () {
+    it('Should run hook during test execution', function () {
+
+    });
+
+    it('Should fail test if hook fails', function () {
+        return runTests().catch();
+    })
+});

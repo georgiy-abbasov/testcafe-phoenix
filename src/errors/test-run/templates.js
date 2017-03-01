@@ -4,14 +4,17 @@ import TYPE from './type';
 import TEST_RUN_STATE from '../../test-run/state';
 
 const SUBTITLES = {
-    [TEST_RUN_STATE.initial]:                 '',
-    [TEST_RUN_STATE.inFixtureBeforeHook]:     '<span class="subtitle">Error in fixture.before hook</span>\n',
-    [TEST_RUN_STATE.inFixtureBeforeEachHook]: '<span class="subtitle">Error in fixture.beforeEach hook</span>\n',
-    [TEST_RUN_STATE.inTestBeforeHook]:        '<span class="subtitle">Error in test.before hook</span>\n',
-    [TEST_RUN_STATE.inTest]:                  '',
-    [TEST_RUN_STATE.inTestAfterHook]:         '<span class="subtitle">Error in test.after hook</span>\n',
-    [TEST_RUN_STATE.inFixtureAfterEachHook]:  '<span class="subtitle">Error in fixture.afterEach hook</span>\n',
-    [TEST_RUN_STATE.inFixtureAfterHook]:      '<span class="subtitle">Error in fixture.after hook</span>\n'
+    [TEST_RUN_STATE.initial]:                    '',
+    [TEST_RUN_STATE.inFixtureBeforeHook]:        '<span class="subtitle">Error in fixture.before hook</span>\n',
+    [TEST_RUN_STATE.inFixtureBeforeEachHook]:    '<span class="subtitle">Error in fixture.beforeEach hook</span>\n',
+    [TEST_RUN_STATE.inTestBeforeHook]:           '<span class="subtitle">Error in test.before hook</span>\n',
+    [TEST_RUN_STATE.inTest]:                     '',
+    [TEST_RUN_STATE.inTestAfterHook]:            '<span class="subtitle">Error in test.after hook</span>\n',
+    [TEST_RUN_STATE.inFixtureAfterEachHook]:     '<span class="subtitle">Error in fixture.afterEach hook</span>\n',
+    [TEST_RUN_STATE.inFixtureAfterHook]:         '<span class="subtitle">Error in fixture.after hook</span>\n',
+    [TEST_RUN_STATE.inFixtureOnEachPage]:        '<span class="subtitle">Error in fixture.onEachPage hook</span>\n',
+    [TEST_RUN_STATE.inTestOnEachPage]:           '<span class="subtitle">Error in test.onEachPage hook</span>\n',
+    [TEST_RUN_STATE.inTestControllerOnEachPage]: '<span class="subtitle">Error in testController.onEachPage hook</span>\n'
 };
 
 function markup (err, msgMarkup, opts = {}) {

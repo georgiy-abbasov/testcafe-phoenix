@@ -646,6 +646,80 @@ describe('Compiler', function () {
                 });
         });
 
+        it('Should raise an error if fixture.onEachPage is not a function', function () {
+            var testfile = resolve('test/server/data/test-suites/fixture-on-each-page-is-not-a-function/testfile.js');
+
+            return compile(testfile)
+                .then(function () {
+                    throw new Error('Promise rejection expected');
+                })
+                .catch(function (err) {
+                    assertAPIError(err, {
+                        stackTop: testfile,
+
+                        message: 'Cannot prepare tests due to an error.\n\n' +
+                                 'fixture.onEachPage hook is expected to be a function, but it was string.',
+
+                        callsite: '   1 |fixture `onEachPage is not a function`\n' +
+                                  " > 2 |    .onEachPage('yo');\n" +
+                                  '   3 |\n' +
+                                  "   4 |test('Some test', () => {\n" +
+                                  '   5 |\n' +
+                                  '   6 |});\n' +
+                                  '   7 |'
+                    });
+                });
+        });
+
+        it('Should raise an error if test.onEachPage is not a function', function () {
+            var testfile = resolve('test/server/data/test-suites/test-on-each-page-is-not-a-function/testfile.js');
+
+            return compile(testfile)
+                .then(function () {
+                    throw new Error('Promise rejection expected');
+                })
+                .catch(function (err) {
+                    assertAPIError(err, {
+                        stackTop: testfile,
+
+                        message: 'Cannot prepare tests due to an error.\n\n' +
+                                 'test.onEachPage hook is expected to be a function, but it was string.',
+
+                        callsite: '   1 |fixture `Fixture`;\n' +
+                                  "   2 |\n" +
+                                  " > 3 |test.onEachPage('Yo')('Some test', () => {\n" +
+                                  '   4 |\n' +
+                                  '   5 |});\n' +
+                                  '   6 |'
+                    });
+                });
+        });
+
+        it('Should raise an error if testController.onEachPage is not a function', function () {
+            var testfile = resolve('test/server/data/test-suites/test-controller-on-each-page-is-not-a-function/testfile.js');
+
+            return compile(testfile)
+                .then(function () {
+                    throw new Error('Promise rejection expected');
+                })
+                .catch(function (err) {
+                    assertAPIError(err, {
+                        stackTop: testfile,
+
+                        message: 'Cannot prepare tests due to an error.\n\n' +
+                                 'fixture.onEachPage hook is expected to be a function, but it was string.',
+
+                        callsite: '   1 |fixture `before is not a function`\n' +
+                                  " > 2 |    .before('yo');\n" +
+                                  '   3 |\n' +
+                                  "   4 |test('Some test', () => {\n" +
+                                  '   5 |\n' +
+                                  '   6 |});\n' +
+                                  '   7 |'
+                    });
+                });
+        });
+
         it('Should raise an error if afterEach is not a function', function () {
             var testfile = resolve('test/server/data/test-suites/after-each-is-not-a-function/testfile.js');
 
