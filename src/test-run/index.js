@@ -12,6 +12,7 @@ import BrowserManipulationQueue from './browser-manipulation-queue';
 import CLIENT_MESSAGES from './client-messages';
 import STATE from './state';
 import COMMAND_TYPE from './commands/type';
+import OnEachPageHookController from '../runner/on-each-page-hook-controller';
 
 import { TakeScreenshotOnFailCommand, ResizeWindowCommand } from './commands/browser-manipulation';
 
@@ -34,7 +35,7 @@ const MAX_RESPONSE_DELAY              = 2 * 60 * 1000;
 
 
 export default class TestRun extends Session {
-    constructor (test, browserConnection, screenshotCapturer, warningLog, opts, onEachPageHook) {
+    constructor (test, browserConnection, screenshotCapturer, warningLog, opts) {
         var uploadsRoot = path.dirname(test.fixture.path);
 
         super(uploadsRoot);
@@ -60,7 +61,7 @@ export default class TestRun extends Session {
         this.controller     = null;
         this.ctx            = Object.create(null);
         this.fixtureCtx     = null;
-        this.onEachPageHook = onEachPageHook;
+        this.onEachPageHook = new OnEachPageHookController();
 
         this.errs = [];
 
@@ -133,7 +134,7 @@ export default class TestRun extends Session {
     }
 
     // Test function execution
-    async _executeTestFn (state, fn) {
+    async _executeTestFn (state, fn, breakOnTestDoneFlag) {
         this.state = state;
 
         try {
@@ -177,18 +178,16 @@ export default class TestRun extends Session {
 
         var result = await this.onEachPageHook.runOnEachPageHook(this);
 
-        console.log('Shutting down the hook');
-
-        this.onEachPageHookWorking = false;
-
         if (!result) {
-            this.stop();
+            await this.stop();
 
             return;
         }
 
+        this.onEachPageHookWorking = false;
+
         // Resume main test where we stopped before hook
-        var lastDriverStatusResponse = this._handleDriverRequest(msg.status);
+        this._handleDriverRequest(msg.status);
 
         // Resend the command from main task queue on which we stopped
         if (this.pendingRequest && this.currentDriverTask)
@@ -201,7 +200,7 @@ export default class TestRun extends Session {
         this.emit('start');
 
         if (await this._runBeforeHook()) {
-            await this._executeTestFn(STATE.inTest, this.test.fn);
+            await this._executeTestFn(STATE.inTest, this.test.fn, true);
             await this._runAfterHook();
         }
 
@@ -294,6 +293,13 @@ export default class TestRun extends Session {
         this._clearPendingRequest();
     }
 
+    _createPendingRequest () {
+        var responseTimeout = setTimeout(() => this._resolvePendingRequest(null), MAX_RESPONSE_DELAY);
+
+        return new Promise((resolve, reject) => {
+            this.pendingRequest = { resolve, reject, responseTimeout };
+        });
+    }
 
     // Handle driver request
     _fulfillCurrentDriverTask (driverStatus) {
@@ -324,7 +330,7 @@ export default class TestRun extends Session {
         if (!currentTaskRejectedByError && driverStatus.isCommandResult) {
             if (this.currentDriverTask.command.type === COMMAND_TYPE.testDone) {
                 this._resolveCurrentDriverTask();
-
+                console.log(338);
                 return TEST_DONE_CONFIRMATION_RESPONSE;
             }
 
@@ -421,54 +427,42 @@ TestRun.activeTestRuns = {};
 // Service message handlers
 var ServiceMessages = TestRun.prototype;
 
-ServiceMessages[CLIENT_MESSAGES.ready] = async function (msg) {
+ServiceMessages[CLIENT_MESSAGES.ready] = function (msg) {
     this.debugLog.driverMessage(msg);
+    console.log(this.onEachPageHookWorking);
 
     this._clearPendingRequest();
 
     var isDriverRepeatStatusMessage = msg.status.id === this.lastDriverStatusId;
+    var isPageReloaded              = isDriverRepeatStatusMessage || msg.status.pageLoad || msg.status.resent;
 
-    if ((isDriverRepeatStatusMessage || msg.status.pageLoad || msg.status.resent) &&
-        this.onEachPageHook.isHookActual(this)) {
-
-        // Clean the task queue if reload was appeared while we executed the hook
-        if (this.onEachPageHookWorking) {
-            console.log('We can fall here');
+    if (isPageReloaded && this.onEachPageHook.isHookActual(this)) {
+        // Clean the task queue and restart hook if reload appears during hook execution.
+        if (this.onEachPageHookWorking)
             this.shadowTaskQueue = [];
-        }
 
         this._runOnEachPageHook(msg);
 
-        // We should leave pending request, cause it's needed for hook execution context
-        var responseTimeout = setTimeout(() => this._resolvePendingRequest(null), MAX_RESPONSE_DELAY);
-
-        return new Promise((resolve, reject) => {
-            this.pendingRequest = { resolve, reject, responseTimeout };
-        });
+        // We should return pending request, cause it's needed for hook execution context
+        return this._createPendingRequest();
     }
 
     // NOTE: the driver sends the status for the second time if it didn't get a response at the
     // first try. This is possible when the page was unloaded after the driver sent the status.
-    else if (isDriverRepeatStatusMessage && this.lastDriverStatusResponse) {
+    else if (isDriverRepeatStatusMessage && this.lastDriverStatusResponse)
         return this.lastDriverStatusResponse;
-    }
 
     this.lastDriverStatusId       = msg.status.id;
     this.lastDriverStatusResponse = this._handleDriverRequest(msg.status);
 
-    if (this.lastDriverStatusResponse) {
+    if (this.lastDriverStatusResponse)
         return this.lastDriverStatusResponse;
-    }
 
+    console.log(465);
     // NOTE: browsers abort an opened xhr request after a certain timeout (the actual duration depends on the browser).
     // To avoid this, we send an empty response after 2 minutes if we didn't get any command.
-    var responseTimeout = setTimeout(() => this._resolvePendingRequest(null), MAX_RESPONSE_DELAY);
-
-    return new Promise((resolve, reject) => {
-        this.pendingRequest = { resolve, reject, responseTimeout };
-    });
-}
-;
+    return this._createPendingRequest();
+};
 
 ServiceMessages[CLIENT_MESSAGES.readyForBrowserManipulation] = async function (msg) {
     this.debugLog.driverMessage(msg);

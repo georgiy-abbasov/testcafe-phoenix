@@ -133,13 +133,19 @@ describe('[API] fixture.before/fixture.after hooks', function () {
 });
 
 describe('API fixture.onEachPage hook', function () {
-    it('Should run hook for all tests', function () {
-
+    it('Should execute hook on first page load', function () {
+        return runTests('./testcafe-fixtures/fixture-on-each-page.js', 'Execute hook on first page load', { only: 'chrome' });
     });
 
-    it('Should not run test if hook fails', function () {
-        return runTests().catch();
-    })
+    it.only('Should fail test if hook fails', function () {
+        return runTests('./testcafe-fixtures/fixture-on-each-page.js', 'fail hook on first page load', {
+            only:       'chrome',
+            shouldFail: true
+        }).catch(function (errs) {
+            console.log(errs);
+            expect(errs[0]).contains('[onEachPage]');
+        });
+    });
 });
 
 describe('API test.onEachPage hook', function () {
@@ -149,7 +155,7 @@ describe('API test.onEachPage hook', function () {
 
     it('Should fail test if hook fails', function () {
         return runTests().catch();
-    })
+    });
 });
 
 describe('API testController.onEachPage hook', function () {
@@ -159,5 +165,5 @@ describe('API testController.onEachPage hook', function () {
 
     it('Should fail test if hook fails', function () {
         return runTests().catch();
-    })
+    });
 });

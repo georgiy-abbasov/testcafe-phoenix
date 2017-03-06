@@ -686,7 +686,7 @@ describe('Compiler', function () {
                                  'test.onEachPage hook is expected to be a function, but it was string.',
 
                         callsite: '   1 |fixture `Fixture`;\n' +
-                                  "   2 |\n" +
+                                  '   2 |\n' +
                                   " > 3 |test.onEachPage('Yo')('Some test', () => {\n" +
                                   '   4 |\n' +
                                   '   5 |});\n' +

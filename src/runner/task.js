@@ -4,6 +4,7 @@ import BrowserJob from './browser-job';
 import Screenshots from '../screenshots';
 import WarningLog from '../notifications/warning-log';
 import FixtureHookController from './fixture-hook-controller';
+import OnEachPageHookController from './on-each-page-hook-controller';
 
 export default class Task extends EventEmitter {
     constructor (tests, browserConnections, proxy, opts) {
@@ -15,6 +16,7 @@ export default class Task extends EventEmitter {
         this.screenshots        = new Screenshots(opts.screenshotPath);
         this.warningLog         = new WarningLog();
 
+        this.onEachPageHookController = new OnEachPageHookController();
         this.fixtureHookController = new FixtureHookController(tests, browserConnections.length);
         this.pendingBrowserJobs    = this._createBrowserJobs(proxy, opts);
     }
@@ -41,7 +43,7 @@ export default class Task extends EventEmitter {
 
     _createBrowserJobs (proxy, opts) {
         return this.browserConnections.map(bc => {
-            var job = new BrowserJob(this.tests, bc, proxy, this.screenshots, this.warningLog, this.fixtureHookController, opts);
+            var job = new BrowserJob(this.tests, bc, proxy, this.screenshots, this.warningLog, this.fixtureHookController, this.onEachPageHookController, opts);
 
             this._assignBrowserJobEventHandlers(job);
             bc.addJob(job);

@@ -11,6 +11,7 @@
 <input type="button" id="failAndReport">
 <input type="button" id="testBefore">
 <input type="button" id="testAfter">
+<input type="button" id="onEachPage">
 
 <script>
     var state = '';
@@ -33,6 +34,10 @@
 
     document.querySelector('#testAfter').addEventListener('click', function () {
         state += '[testAfter]';
+    });
+
+    document.querySelector('#onEachPage').addEventListener('click', function () {
+        state += '[onEachPage]';
     });
 
     document.querySelector('#failAndReport').addEventListener('click', function () {

@@ -1,6 +1,6 @@
 import TEST_RUN_STATE from '../test-run/state';
 import processTestFnError from '../errors/process-test-fn-error';
-import testControllerProxy from '../api/test-controller/proxy';
+//import testControllerProxy from '../api/test-controller/proxy';
 
 export default class OnEachPageHookController {
     constructor () {
@@ -24,25 +24,22 @@ export default class OnEachPageHookController {
             catch (err) {
                 error = processTestFnError(err);
 
-                try {
-                    switch (hookFn) {
-                        case testRun.test.fixture.onEachPageFn:
-                            testRun.state = TEST_RUN_STATE.inFixtureOnEachPage;
-                            break;
-                    }
+
+                switch (hookFn) {
+                    case testRun.test.fixture.onEachPageFn:
+                        testRun.state = TEST_RUN_STATE.inFixtureOnEachPage;
+                        break;
+
                 }
-                catch (err) {
-                    console.log(err);
-                }
+            }
+
+            if (error) {
+                testRun.addError(error);
+
+                return false;
             }
         }
 
-        if (error) {
-            testRun.addError(error);
-
-            return false;
-        }
-
         return true;
-    };
+    }
 }

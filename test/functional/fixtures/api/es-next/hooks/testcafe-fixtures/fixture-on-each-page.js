@@ -1,28 +1,39 @@
-import { Selector, ClientFunction } from 'testcafe';
+import { ClientFunction } from 'testcafe';
+
+const increaseHookCounter = ClientFunction(()=> {
+    window.hookCounter = window.hookCounter || 0;
+
+    window.hookCounter++;
+});
+
+const getHookCounter = ClientFunction(() => window.hookCounter);
 
 fixture `fixture.onEachPage test`
-    .page `http://example.com`
-    .onEachPage(async t => {
-        console.log('on each page executed');
-        await t.click(Selector(() => document.body));
-
-        onEachPageExecuted++;
-    })
-    .beforeEach(() => {
-        console.log('fixture before each executed');
+    .page `http://localhost:3000/fixtures/api/es-next/hooks/pages/index.html`
+    .onEachPage(async () => {
+        await increaseHookCounter();
     });
 
-let onEachPageExecuted = 0;
 
-test('Some test 1', async (t) => {
-
-    await t
-        .navigateTo('http://google.com')
-        .click(Selector(() => document.body));
-
-    await ClientFunction(()=>document.querySelector('a').click())();
-
+test('Execute hook on first page load', async (t) => {
+    await t.expect(getHookCounter()).eql(1);
 });
+
+
+fixture `fail in hook`
+    .page `http://localhost:3000/fixtures/api/es-next/hooks/pages/index.html`
+    .onEachPage(async t => {
+        await t
+            .click('#onEachPage')
+            .click('#failAndReport');
+    });
+
+
+test('fail hook on first page load', async (t) => {
+    await t.click('fakeSelector');
+});
+
+
 /*
 
 test('Some test 2 ', async (t) => {
