@@ -30,6 +30,7 @@ You will need to add the following configuration to the `launch.json` file.
 ```json
 {
     "type": "node",
+    "protocol": "auto",
     "request": "launch",
     "name": "Launch test files with TestCafe",
     "program": "${workspaceRoot}/node_modules/testcafe/bin/testcafe.js",
@@ -44,11 +45,14 @@ You will need to add the following configuration to the `launch.json` file.
 This configuration contains the following attributes:
 
 * `type` - specifies the type of the configuration. Set to `node` for a Node.js configuration.
+* `protocol` - specifies Node.js debugger [wire protocol](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_supported-nodelike-runtimes). 
 * `request` - specifies the request type. Set to `launch` since this configuration launches a program.
 * `name` - specifies the name of the configuration.
 * `program` - path to a JS file that will be executed. In this case, it is the TestCafe module.
 * `args` - [command line arguments](../using-testcafe/command-line-interface.md) passed to the launched program. In this case, they specify the browser in which the tests should run and the test file.
 * `cwd` - the current working directory. Set to the workspace root.
+
+**Note**: we highly recommend to use Node.js version, which supports *inspector* [debugger protocol](https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_supported-nodelike-runtimes).
 
 Save the `launch.json` file. The new configuration will appear in the configuration drop-down.
 
